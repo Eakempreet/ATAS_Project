@@ -2,3 +2,5 @@ ATAS_Notes/
 env/
 data/
 logs/
+models/
+release_models/
