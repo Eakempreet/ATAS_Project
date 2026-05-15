@@ -5,6 +5,9 @@ channels:
 dependencies:
   - _libgcc_mutex=0.1
   - _openmp_mutex=5.1
+  - aiohappyeyeballs=2.6.1
+  - aiohttp=3.13.5
+  - aiosignal=1.4.0
   - anyio=4.12.1
   - aom=3.13.2
   - argon2-cffi=25.1.0
@@ -25,6 +28,7 @@ dependencies:
   - charset-normalizer=3.4.4
   - comm=0.2.3
   - contourpy=1.3.3
+  - cryptography=48.0.0
   - cycler=0.12.1
   - cyrus-sasl=2.1.28
   - dav1d=1.5.3
@@ -37,7 +41,10 @@ dependencies:
   - fonttools=4.62.1
   - freetype=2.14.1
   - fribidi=1.0.16
+  - frozenlist=1.7.0
   - git-lfs=3.7.1
+  - google-auth=2.52.0
+  - google-colab=1.0.0
   - graphite2=1.3.14
   - h11=0.16.0
   - harfbuzz=12.3.0
@@ -119,6 +126,7 @@ dependencies:
   - mkl-service=2.5.2
   - mkl_fft=2.2.0
   - mkl_random=1.3.0
+  - multidict=6.7.1
   - mysql-common=9.3.0
   - mysql-libs=9.3.0
   - nbclient=0.10.4
@@ -141,15 +149,20 @@ dependencies:
   - pip=26.0.1
   - pixman=0.46.4
   - platformdirs=4.9.4
+  - portpicker=1.6.0
   - prometheus_client=0.24.1
   - prompt-toolkit=3.0.52
   - prompt_toolkit=3.0.52
+  - propcache=0.3.1
   - psutil=7.0.0
   - pthread-stubs=0.3
   - ptyprocess=0.7.0
   - pure_eval=0.2.3
+  - pyasn1=0.6.3
+  - pyasn1-modules=0.4.2
   - pycparser=3.0
   - pygments=2.20.0
+  - pyopenssl=22.0.0
   - pyparsing=3.2.5
   - pyqt=6.11.0
   - pyqt6-sip=13.11.1
@@ -158,6 +171,9 @@ dependencies:
   - python-dateutil=2.9.0post0
   - python-fastjsonschema=2.21.2
   - python-json-logger=4.0.0
+  - python_abi=3.11
+  - pytz=2026.1.post1
+  - pyu2f=0.1.5
   - pyyaml=6.0.3
   - pyzmq=27.1.0
   - qtbase=6.11.0
@@ -173,6 +189,7 @@ dependencies:
   - rfc3339-validator=0.1.4
   - rfc3986-validator=0.1.1
   - rpds-py=0.28.0
+  - rsa=4.9.1
   - scikit-learn=1.8.0
   - scipy=1.17.1
   - seaborn=0.13.2
@@ -222,12 +239,14 @@ dependencies:
   - xorg-xorgproto=2024.1
   - xz=5.8.2
   - yaml=0.2.5
+  - yarl=1.23.0
   - zeromq=4.3.5
   - zlib=1.3.1
   - zstd=1.5.7
   - pip:
       - absl-py==2.4.0
       - astunparse==1.6.3
+      - condacolab==0.1.10
       - flatbuffers==25.12.19
       - gast==0.7.0
       - google-pasta==0.2.0
