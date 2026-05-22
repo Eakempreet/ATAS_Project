@@ -1,6 +1,7 @@
 ATAS_Notes/
 env/
 data/
+!data/aircraft_metadata.csv
 logs/
 models/
 release_models/
