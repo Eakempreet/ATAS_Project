@@ -136,7 +136,8 @@ def _derive_evasion_time(remaining_distance, closure_rate,
     Modifiers:
         - missile_phase == 2 (terminal): seeker has locked on, countermeasures
           need 2-3s overhead to be effective. Shrinks window by 15%. (x 0.85)
-        - enemy_generation == 5: HOBS seeker + ECCM make the missile harder to
+        - enemy_generation == 5: HOBS (High Off-Boresight)
+          seeker + ECCM make the missile harder to
           defeat, compressing effective reaction time by ~10%. (x 0.90)
         - your_speed > 522 m/s (above median): high energy state gives more
           lateral geometry per second during evasion. Slight expansion. (x 1.05)
@@ -179,16 +180,85 @@ def _derive_evasion_time(remaining_distance, closure_rate,
     return evasion_time
     
     
-    
 
-# ── Derives hit label — does the missile hit after evasion attempt? ───────────
-# 0 = miss, 1 = hit — influenced by countermeasures, maneuverability,
-# azimuth, elevation, missile phase, enemy generation, and altitude differential
 def _derive_hit_label(countermeasure_deployed, your_maneuverability,
                       azimuth, elevation, missile_phase, enemy_generation,
                       your_altitude, enemy_altitude):
-    pass
+    """
+    Derives whether the missile hits after an evasion attempt.
 
+    Starts from a neutral survival score of 0.5. Modifiers push it up (more
+    likely to hit) or down (more likely to miss). Final label is 1 if the
+    missile hits, 0 if it misses.
+
+    This is where azimuth and elevation belong — they affect survival after
+    evasion, not when the missile arrives (that is handled by closure_rate
+    in _derive_evasion_time).
+
+    Modifiers:
+        - countermeasure_deployed == 1: active countermeasures significantly
+          reduce hit probability. Score drops.
+        - your_maneuverability == 2: high maneuverability makes evasion more
+          effective. Score drops.
+        - azimuth near 0° (head-on): least time and geometry to evade.
+          Score rises.
+        - missile_phase == 2 (terminal): seeker locked on, hardest to defeat.
+          Score rises.
+        - enemy_generation == 5: HOBS + ECCM make the missile more lethal.
+          Score rises.
+        - elevation far from 0°: steep approach angle reduces evasion options.
+          Score rises.
+        - large altitude differential > 5000m: pushes missile toward edge of
+          performance envelope. Score drops.
+
+    Args:
+        countermeasure_deployed (int): 0 = not deployed, 1 = deployed.
+        your_maneuverability (int): 0 = low, 1 = medium, 2 = high.
+        azimuth (float): Horizontal angle of incoming threat in degrees (0° = head-on).
+        elevation (float): Vertical angle of incoming threat in degrees (0° = level).
+        missile_phase (int): 0 = boost, 1 = mid-course, 2 = terminal.
+        enemy_generation (float): Enemy aircraft generation (3.5, 4, 4.5, or 5).
+        your_altitude (float): Your current altitude (metres).
+        enemy_altitude (float): Enemy aircraft altitude (metres).
+
+    Returns:
+        int: 1 if missile hits, 0 if missile misses.
+    """
+    
+    # Neutral starting score - modifiers push it toward hit or miss
+    score = 0.5
+    
+    # Countermeasures active - significantly reduces hit chance
+    if countermeasure_deployed == 1:
+        score -= 0.20
+        
+    # High maneuverability - evasion more effective
+    if your_maneuverability == 2:
+        score -= 0.10
+        
+    # Head-on approach - least time and geometry to evade
+    if azimuth < 30:
+        score += 0.15
+        
+    # Terminal phase - seeker locked on, hardest to defeat
+    if missile_phase == 2:
+        score += 0.15
+        
+    # Gen 5 missile - HOBS + ECCM make it more lethal
+    if enemy_generation == 5:
+        score += 0.10
+        
+    # Steep approach angle - reduces evasion options
+    if abs(elevation) > 45:
+        score += 0.10
+        
+    # Large altitude gap - missile at edge of performance envelope
+    if abs(your_altitude - enemy_altitude) > 5000:
+        score -= 0.10
+
+    # Hit if score crosses 0.5
+    return 1 if score >= 0.5 else 0
+    
 
 # ── Generates one complete engagement scenario as a dict ─────────────────────
 def _generate_row(metadata):
