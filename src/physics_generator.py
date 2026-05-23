@@ -51,7 +51,18 @@ COUNTERMEASURE_VALUES  = [0, 1]
 
 # ── Runs once — loads combat-capable aircraft from metadata CSV ───────────────
 def _load_metadata():
-    pass
+    """
+    Loads combat-capable aircraft from the metadata CSV (no_aa_capability == 0).
+
+    Returns:
+        pd.DataFrame: Filtered metadata containing only aircraft with air-to-air missile capability.
+    """
+    
+    if not METADATA_PATH.exists():
+        raise FileNotFoundError(f"Metadata CSV not found: {METADATA_PATH}")
+    metadata_df = pd.read_csv(METADATA_PATH)
+    metadata_df = metadata_df[metadata_df["no_aa_capability"]==0]
+    return metadata_df
 
 
 # ── Derives missile phase from how far it has already traveled ────────────────
