@@ -333,13 +333,34 @@ def _generate_row(aircraft_row):
 
 # ── Saves completed DataFrame to CSV ─────────────────────────────────────────
 def _save_dataset(df):
-    pass
+    """
+    Saves the generated dataset to a CSV file.
+
+    Args:
+        df (pd.DataFrame): The complete synthetic engagement dataset.
+    """
+    
+    # Create data directory if it doesn't exist
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    
+    # Save to CSV
+    df.to_csv(OUTPUT_PATH, index=False)
 
 
 # ── Public entry point — the only function the notebook calls ─────────────────
-def generate_dataset(n_rows=N_ROWS):
+def generate_dataset():
+    """
+    Generates 1,000,000 synthetic engagement scenarios and saves to CSV.
+
+    Loads combat-capable aircraft from metadata, samples each aircraft
+    equally across all rows, derives all features and labels using physics,
+    and writes the final dataset to disk.
+
+    Returns:
+        pd.DataFrame: The complete synthetic engagement dataset.
+    """
     metadata = _load_metadata()
-    rows = [_generate_row(metadata) for _ in range(n_rows)]
+    rows = [_generate_row(metadata.sample(1).iloc[0]) for _ in range(N_ROWS)]
     df = pd.DataFrame(rows)
     _save_dataset(df)
-    print(f"Done. {n_rows:,} rows saved to {OUTPUT_PATH}")
+    print(f"Done. {N_ROWS:,} rows saved to {OUTPUT_PATH}")
