@@ -68,7 +68,26 @@ def _load_metadata():
 # ── Derives missile phase from how far it has already traveled ────────────────
 # phase 0 = boost (just launched), 1 = mid-course, 2 = terminal (final approach)
 def _derive_missile_phase(remaining_distance, launch_distance):
-    pass
+    """
+    Derives missile flight phase from how much of its journey it has completed.
+
+    Args:
+        remaining_distance (float): Distance remaining between missile and target (metres).
+        launch_distance (float): Total distance at the moment of launch (metres).
+
+    Returns:
+        int: 0 = boost, 1 = mid-course, 2 = terminal.
+    """
+    
+    traveled_distance = launch_distance - remaining_distance
+    ratio = traveled_distance / launch_distance
+    
+    if ratio < 0.33:
+        return 0
+    elif 0.33 <= ratio < 0.66:
+        return 1
+    else:
+        return 2
 
 
 # ── Derives closure rate using 3D geometry (azimuth + elevation + speeds) ─────
@@ -77,7 +96,32 @@ def _derive_missile_phase(remaining_distance, launch_distance):
 def _derive_closure_rate(missile_speed, your_speed,
                          azimuth, elevation,
                          your_altitude, enemy_altitude):
-    pass
+    """
+    Derives the closure rate - how fast the gap between the missile and the target is closing (m/s).
+
+    Uses 3D geometry: azimuth accounts for horizontal approach angle,
+    elevation accounts for vertical approach angle.
+
+    Args:
+        missile_speed (float): Speed of the incoming missile (m/s).
+        your_speed (float): Speed of the friendly aircraft (m/s).
+        azimuth (float): Horizontal angle of incoming threat in degrees (0° = head-on).
+        elevation (float): Vertical angle of incoming threat in degrees (0° = same altitude).
+        your_altitude (float): Friendly aircraft altitude (metres).
+        enemy_altitude (float): Enemy aircraft altitude (metres).
+
+    Returns:
+        float: Closure rate in m/s.
+    """
+    
+    # Convert the angles into radians and prepare for cosine
+    azimuth = math.radians(azimuth)
+    elevation = math.radians(elevation)
+    
+    # Extract the closure rate
+    closure_rate = missile_speed + your_speed * math.cos(azimuth) * math.cos(elevation)
+    
+    return closure_rate
 
 
 # ── Derives evasion time — seconds before missile reaches you ─────────────────
