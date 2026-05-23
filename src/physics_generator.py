@@ -261,8 +261,74 @@ def _derive_hit_label(countermeasure_deployed, your_maneuverability,
     
 
 # ── Generates one complete engagement scenario as a dict ─────────────────────
-def _generate_row(metadata):
-    pass
+def _generate_row(aircraft_row):
+    """
+    Generates one synthetic engagement scenario for a given aircraft.
+
+    Samples random values for all situational features, derives computed
+    features using physics, and returns a complete row with labels.
+
+    Args:
+        aircraft_row (pd.Series): One row from the metadata CSV.
+
+    Returns:
+        dict: All 14 features plus evasion_time and hit labels.
+    """
+    
+    # Sample situational features
+    your_speed    = np.random.uniform(*YOUR_SPEED_RANGE)
+    your_altitude = np.random.uniform(*YOUR_ALTITUDE_RANGE)
+    enemy_alitude = np.random.uniform(*ENEMY_ALTITUDE_RANGE)
+    azimuth       = np.random.uniform(*AZIMUTH_RANGE)
+    elevation     = np.random.uniform(*ELEVATION_RANGE)
+    
+    # Sample categorical features
+    your_maneuverability    = np.random.uniform(MANEUVERABILITY_VALUES)
+    countermeasure_deployed = np.random.uniform(COUNTERMEASURE_VALUES)
+    
+    # Pull threat specs from metadata
+    missile_speed    = aircraft_row["missile_speed"]
+    missile_range    = aircraft_row["missile_range"]
+    enemy_generation = aircraft_row["enemy_generation"]
+    
+    # Sample engagement distances
+    launch_distance    = np.random.uniform(LAUNCH_DISTANCE_MIN, missile_range)
+    remaining_distance = np.random.uniform(0, launch_distance)
+    
+    # Derive computed features
+    missile_phase = _derive_missile_phase(remaining_distance, launch_distance)
+    closure_rate  = _derive_closure_rate(missile_speed, your_speed,
+                                         azimuth, elevation,
+                                         your_altitude, enemy_altitude)
+
+    # Derive labels
+    evasion_time = _derive_evasion_time(remaining_distance, closure_rate,
+                                        missile_phase, enemy_generation,
+                                        your_speed, your_altitude, enemy_altitude)
+    hit          = _derive_hit_label(countermeasure_deployed, your_maneuverability,
+                                     azimuth, elevation, missile_phase, enemy_generation,
+                                     your_altitude, enemy_altitude)
+    
+    # Return complete row
+    return {
+        "launch_distance":        launch_distance,
+        "remaining_distance":     remaining_distance,
+        "closure_rate":           closure_rate,
+        "azimuth":                azimuth,
+        "elevation":              elevation,
+        "missile_phase":          missile_phase,
+        "your_speed":             your_speed,
+        "your_altitude":          your_altitude,
+        "your_maneuverability":   your_maneuverability,
+        "enemy_altitude":         enemy_altitude,
+        "missile_speed":          missile_speed,
+        "missile_range":          missile_range,
+        "enemy_generation":       enemy_generation,
+        "countermeasure_deployed": countermeasure_deployed,
+        "evasion_time":           evasion_time,
+        "hit":                    hit,
+    }
+    
 
 
 # ── Saves completed DataFrame to CSV ─────────────────────────────────────────
