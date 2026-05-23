@@ -278,13 +278,13 @@ def _generate_row(aircraft_row):
     # Sample situational features
     your_speed    = np.random.uniform(*YOUR_SPEED_RANGE)
     your_altitude = np.random.uniform(*YOUR_ALTITUDE_RANGE)
-    enemy_alitude = np.random.uniform(*ENEMY_ALTITUDE_RANGE)
+    enemy_altitude = np.random.uniform(*ENEMY_ALTITUDE_RANGE)
     azimuth       = np.random.uniform(*AZIMUTH_RANGE)
     elevation     = np.random.uniform(*ELEVATION_RANGE)
     
     # Sample categorical features
-    your_maneuverability    = np.random.uniform(MANEUVERABILITY_VALUES)
-    countermeasure_deployed = np.random.uniform(COUNTERMEASURE_VALUES)
+    your_maneuverability    = np.random.choice(MANEUVERABILITY_VALUES)
+    countermeasure_deployed = np.random.choice(COUNTERMEASURE_VALUES)
     
     # Pull threat specs from metadata
     missile_speed    = aircraft_row["missile_speed"]
@@ -326,7 +326,7 @@ def _generate_row(aircraft_row):
         "enemy_generation":       enemy_generation,
         "countermeasure_deployed": countermeasure_deployed,
         "evasion_time":           evasion_time,
-        "hit":                    hit,
+        "hit":                    hit
     }
     
 
