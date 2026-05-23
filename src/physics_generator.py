@@ -124,14 +124,62 @@ def _derive_closure_rate(missile_speed, your_speed,
     return closure_rate
 
 
-# ── Derives evasion time — seconds before missile reaches you ─────────────────
-# Based on closure rate, modified by missile phase, azimuth, and elevation
-# Enemy altitude affects how much vertical maneuvering room you have
 def _derive_evasion_time(remaining_distance, closure_rate,
-                         missile_phase, azimuth, elevation,
-                         your_altitude, enemy_altitude):
-    pass
+                         missile_phase, enemy_generation,
+                         your_speed, your_altitude, enemy_altitude):
+    """
+    Derives the minimum evasion time - seconds before the missile reaches you.
 
+    Base calculation is pure kinematics: remaining_distance / closure_rate.
+    Four modifiers are applied to account for factors the base formula cannot capture.
+
+    Modifiers:
+        - missile_phase == 2 (terminal): seeker has locked on, countermeasures
+          need 2-3s overhead to be effective. Shrinks window by 15%. (x 0.85)
+        - enemy_generation == 5: HOBS seeker + ECCM make the missile harder to
+          defeat, compressing effective reaction time by ~10%. (x 0.90)
+        - your_speed > 522 m/s (above median): high energy state gives more
+          lateral geometry per second during evasion. Slight expansion. (x 1.05)
+        - abs(your_altitude - enemy_altitude) > 5000m: large altitude gap pushes
+          engagement toward edge of missile performance envelope, degrading
+          terminal accuracy. Slight expansion. (x 1.10)
+
+    Args:
+        remaining_distance (float): Distance between missile and you right now (metres).
+        closure_rate (float): Combined closing speed from _derive_closure_rate() (m/s).
+        missile_phase (int): 0 = boost, 1 = mid-course, 2 = terminal.
+        enemy_generation (float): Enemy aircraft generation (3.5, 4, 4.5, or 5).
+        your_speed (float): Your current airspeed (m/s).
+        your_altitude (float): Your current altitude (metres).
+        enemy_altitude (float): Enemy aircraft altitude (metres).
+
+    Returns:
+        float: Evasion time in seconds.
+    """
+    
+    # Calculate the evasion time
+    evasion_time = remaining_distance / closure_rate
+    
+    # Terminal phase - seeker locked on, countermeasures need 2–3s overhead
+    if missile_phase == 2:
+        evasion_time *= 0.85
+        
+    # Gen 5 aircraft missile (HOBS + ECCM) compresses effective reaction time
+    if enemy_generation == 5:
+        evasion_time *= 0.90
+        
+    # High speed — more room to maneuver
+    if your_speed > 522:
+        evasion_time *= 1.05
+        
+    # Large altitude gap - missile at edge of performance envelope
+    if abs(your_altitude - enemy_altitude) > 5000:
+        evasion_time *= 1.10
+        
+    return evasion_time
+    
+    
+    
 
 # ── Derives hit label — does the missile hit after evasion attempt? ───────────
 # 0 = miss, 1 = hit — influenced by countermeasures, maneuverability,
