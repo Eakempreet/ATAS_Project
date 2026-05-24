@@ -77,6 +77,10 @@ def _derive_missile_phase(remaining_distance, launch_distance):
 
     Returns:
         int: 0 = boost, 1 = mid-course, 2 = terminal.
+        
+        Phase 0 — engine burning, accelerating, just launched
+        Phase 1 — flying toward your predicted position, guided but not actively tracking you yet
+        Phase 2 — active seeker on, tracking you specifically, hardest to fool
     """
     
     traveled_distance = launch_distance - remaining_distance
@@ -94,8 +98,7 @@ def _derive_missile_phase(remaining_distance, launch_distance):
 # How fast the gap between you and the missile is closing, in m/s
 # Enemy altitude adds the vertical dimension to the engagement geometry
 def _derive_closure_rate(missile_speed, your_speed,
-                         azimuth, elevation,
-                         your_altitude, enemy_altitude):
+                         azimuth, elevation):
     """
     Derives the closure rate - how fast the gap between the missile and the target is closing (m/s).
 
@@ -107,8 +110,6 @@ def _derive_closure_rate(missile_speed, your_speed,
         your_speed (float): Speed of the friendly aircraft (m/s).
         azimuth (float): Horizontal angle of incoming threat in degrees (0° = head-on).
         elevation (float): Vertical angle of incoming threat in degrees (0° = same altitude).
-        your_altitude (float): Friendly aircraft altitude (metres).
-        enemy_altitude (float): Enemy aircraft altitude (metres).
 
     Returns:
         float: Closure rate in m/s.
@@ -119,7 +120,7 @@ def _derive_closure_rate(missile_speed, your_speed,
     elevation = math.radians(elevation)
     
     # Extract the closure rate
-    closure_rate = missile_speed + your_speed * math.cos(azimuth) * math.cos(elevation)
+    closure_rate = missile_speed + (your_speed * (math.cos(azimuth) * math.cos(elevation)))
     
     return closure_rate
 
@@ -293,13 +294,12 @@ def _generate_row(aircraft_row):
     
     # Sample engagement distances
     launch_distance    = np.random.uniform(LAUNCH_DISTANCE_MIN, missile_range)
-    remaining_distance = np.random.uniform(0, launch_distance)
+    remaining_distance = np.random.uniform(0, launch_distance)    # remaining_distance <= launch_distance always
     
     # Derive computed features
     missile_phase = _derive_missile_phase(remaining_distance, launch_distance)
     closure_rate  = _derive_closure_rate(missile_speed, your_speed,
-                                         azimuth, elevation,
-                                         your_altitude, enemy_altitude)
+                                         azimuth, elevation)
 
     # Derive labels
     evasion_time = _derive_evasion_time(remaining_distance, closure_rate,
@@ -360,7 +360,21 @@ def generate_dataset():
         pd.DataFrame: The complete synthetic engagement dataset.
     """
     metadata = _load_metadata()
-    rows = [_generate_row(metadata.sample(1).iloc[0]) for _ in range(N_ROWS)]
+    
+    rows_per_aircraft = N_ROWS // len(metadata)   # 1_000_000 // 56  # → 17,857 rows per aircraft
+    # empty list to collect all rows
+    rows = []
+    for _, aircraft_row in metadata.iterrows():
+        for _ in range(rows_per_aircraft):
+            # generate 17,857 random scenarios for THIS aircraft
+            rows.append(_generate_row(aircraft_row))
+    
+    # Fill remaining rows to hit exactly N_ROWS
+    remaining_rows = N_ROWS - len(rows)
+    if remaining_rows:
+        for _ in range(remaining_rows):
+            rows.append(_generate_row(metadata.sample(1).iloc[0]))        
     df = pd.DataFrame(rows)
+    
     _save_dataset(df)
-    print(f"Done. {N_ROWS:,} rows saved to {OUTPUT_PATH}")
+    print(f"Done. {len(rows):,} rows saved to {OUTPUT_PATH}")
