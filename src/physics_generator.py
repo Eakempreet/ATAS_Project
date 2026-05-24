@@ -356,25 +356,34 @@ def generate_dataset():
     equally across all rows, derives all features and labels using physics,
     and writes the final dataset to disk.
 
+    Only valid threat scenarios are included (closure_rate > 0).
+
     Returns:
         pd.DataFrame: The complete synthetic engagement dataset.
     """
     metadata = _load_metadata()
     
-    rows_per_aircraft = N_ROWS // len(metadata)   # 1_000_000 // 56  # → 17,857 rows per aircraft
-    # empty list to collect all rows
+    rows_per_aircraft = N_ROWS // len(metadata)  # 1_000_000 // 56 → 17,857 rows per aircraft
     rows = []
+    
     for _, aircraft_row in metadata.iterrows():
-        for _ in range(rows_per_aircraft):
-            # generate 17,857 random scenarios for THIS aircraft
-            rows.append(_generate_row(aircraft_row))
+        count = 0
+        while count < rows_per_aircraft:
+            row = _generate_row(aircraft_row)
+            if row["closure_rate"] > 0:
+                rows.append(row)
+                count += 1
     
     # Fill remaining rows to hit exactly N_ROWS
     remaining_rows = N_ROWS - len(rows)
     if remaining_rows:
-        for _ in range(remaining_rows):
-            rows.append(_generate_row(metadata.sample(1).iloc[0]))        
-    df = pd.DataFrame(rows)
+        count = 0
+        while count < remaining_rows:
+            row = _generate_row(metadata.sample(1).iloc[0])
+            if row["closure_rate"] > 0:
+                rows.append(row)
+                count += 1
     
+    df = pd.DataFrame(rows)
     _save_dataset(df)
     print(f"Done. {len(rows):,} rows saved to {OUTPUT_PATH}")
