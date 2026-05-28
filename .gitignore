@@ -7,3 +7,4 @@ models/
 release_models/
 predictions/
 model_history/
+.vscode/
