@@ -125,6 +125,13 @@ def _derive_closure_rate(missile_speed, your_speed,
     return closure_rate
 
 
+"""
+Note: enemy_speed is not included as a feature. This is a known simplification, in real engagements,
+enemy aircraft velocity at launch contributes to effective missile speed. This can be added in a future iteration 
+of the physics generator.
+"""
+
+
 def _derive_evasion_time(remaining_distance, closure_rate,
                          missile_phase, enemy_generation,
                          your_speed, your_altitude, enemy_altitude):
