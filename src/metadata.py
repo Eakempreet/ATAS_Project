@@ -29,7 +29,7 @@ def get_aircraft_metadata(aircraft_name:str) -> dict:
     aircraft_name = aircraft_name.upper()
     
     # Find the row
-    aircraft_row = aircraft_df[aircraft_df['aircraft'] == aircraft_name]
+    aircraft_row = aircraft_df[aircraft_df['aircraft'].str.upper() == aircraft_name]
     
     # Handling egde cases
     if not aircraft_row.empty:

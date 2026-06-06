@@ -394,3 +394,68 @@ def generate_dataset():
     df = pd.DataFrame(rows)
     _save_dataset(df)
     print(f"Done. {len(rows):,} rows saved to {OUTPUT_PATH}")
+    
+    
+    
+# Inference only - assembles 14-feature array from HUD inputs and metadata for model prediction    
+def build_feature_array(
+    # From HUD sliders
+    launch_distance, remaining_distance,
+    azimuth, elevation,
+    your_speed, your_altitude, enemy_altitude,
+    countermeasure_deployed,
+    # From metadata lookup (enemy aircraft)
+    missile_speed, missile_range, enemy_generation,
+    # From metadata lookup (friendly aircraft)
+    your_maneuverability
+):
+    """
+    Assembles the 14-feature array required by the ETA and hit models at inference time.
+
+    All inputs arrive pre-collected from the HUD sliders and metadata lookups.
+    Closure rate and missile phase are derived here from those inputs using the
+    same physics helpers used during training. The returned dict is in the exact
+    column order the models were trained on.
+
+    Args:
+        launch_distance (float): Distance at moment of missile launch (metres).
+        remaining_distance (float): Distance remaining between missile and target (metres).
+        azimuth (float): Horizontal angle of incoming threat in degrees (0 = head-on).
+        elevation (float): Vertical angle of incoming threat in degrees (0 = level).
+        your_speed (float): Friendly aircraft airspeed (m/s).
+        your_altitude (float): Friendly aircraft altitude (metres).
+        enemy_altitude (float): Enemy aircraft altitude (metres).
+        countermeasure_deployed (int): 0 = not deployed, 1 = deployed.
+        missile_speed (float): Incoming missile speed (m/s), from enemy metadata.
+        missile_range (float): Missile maximum effective range (metres), from enemy metadata.
+        enemy_generation (float): Enemy aircraft generation, from enemy metadata.
+        your_maneuverability (int): Friendly aircraft maneuverability, from friendly metadata.
+            0 = low, 1 = medium, 2 = high. Maneuverability is an aircraft property
+            and follows the same metadata lookup pattern for both friendly and enemy platforms.
+
+    Returns:
+        dict: 14 features in training column order, ready for model inference.
+    """
+
+    # Derive the two features that are computed from inputs rather than sourced directly
+    missile_phase = _derive_missile_phase(remaining_distance, launch_distance)
+    closure_rate  = _derive_closure_rate(missile_speed, your_speed,
+                                         azimuth, elevation)
+
+    # Assemble and return all 14 features in exact training column order
+    return {
+        "launch_distance":         launch_distance,
+        "remaining_distance":      remaining_distance,
+        "closure_rate":            closure_rate,
+        "azimuth":                 azimuth,
+        "elevation":               elevation,
+        "missile_phase":           missile_phase,
+        "your_speed":              your_speed,
+        "your_altitude":           your_altitude,
+        "your_maneuverability":    your_maneuverability,
+        "enemy_altitude":          enemy_altitude,
+        "missile_speed":           missile_speed,
+        "missile_range":           missile_range,
+        "enemy_generation":        enemy_generation,
+        "countermeasure_deployed": countermeasure_deployed
+    }

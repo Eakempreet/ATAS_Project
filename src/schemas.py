@@ -40,7 +40,7 @@ MODEL_PATHS = {
 }
 
 # Cutoffs used by decision.py to convert model outputs into pilot recommendations
-DECISION_THRESHOLD = {
+DECISION_THRESHOLDS = {
     'hit_prob_high'   : 0.75,   # BREAK HARD + DEPLOY COUNTERMEASURES
     'hit_prob_medium' : 0.60,   # DEPLOY COUNTERMEASURES
     'eta_critical'    : 10      # seconds - urgency threshold
