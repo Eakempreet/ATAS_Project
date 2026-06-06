@@ -1,14 +1,16 @@
 """
 What is schemas.py
+
 A single Python file that holds shared constants — column names, their order, and any fixed values the pipeline depends on.
 
 Why it exists
+
 Three files will each build or consume the 14-feature array: physics_generator.py, models.py, and main.py. If each one hardcodes its own column list, one typo in one file breaks the whole pipeline silently.
 schemas.py means they all import from the same list. One source of truth.
 
 What goes inside it
-Three things:
 
+Three things:
 FEATURE_COLUMNS - the 14 feature names in exact training order
 MODEL_PATHS - file paths to your two saved .joblib models
 DECISION_THRESHOLDS - the ETA and hit probability cutoffs your decision layer will use
