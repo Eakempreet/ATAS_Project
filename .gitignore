@@ -5,6 +5,9 @@ data/
 logs/
 models/
 release_models/
+# !release_models/aircraft_classifier
+# !release_models/eta
+# !release_models/hit
 predictions/
 model_history/
 .vscode/
