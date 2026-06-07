@@ -41,7 +41,9 @@ MODEL_PATHS = {
 
 # Cutoffs used by decision.py to convert model outputs into pilot recommendations
 DECISION_THRESHOLDS = {
-    'hit_prob_high'   : 0.75,   # BREAK HARD + DEPLOY COUNTERMEASURES
-    'hit_prob_medium' : 0.60,   # DEPLOY COUNTERMEASURES
-    'eta_critical'    : 10      # seconds - urgency threshold
+    'hit_prob_high': 0.75,
+    'hit_prob_medium': 0.60,
+    'eta_critical': 10,
+    'gen_advantage_threshold': 0.5,    # friendly gen must be this much higher to be considered advantaged
+    'gen_disadvantage_threshold': 0.5  # enemy gen must be this much higher to be considered disadvantaged
 }
