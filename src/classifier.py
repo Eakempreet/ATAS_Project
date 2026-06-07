@@ -162,10 +162,14 @@ def _tta_predict(model, image_path, n_augments=15):
 
 # Function to predict the class name of the aircraft
 def predict_aircraft(image_path:str):
-    """_summary_
+    """
+    Run TTA inference on a single image and return the predicted aircraft class name.
 
     Args:
-        image_path (str): _description_
+        image_path (str): Path to the input image file.
+
+    Returns:
+        str: Predicted aircraft class name (e.g. 'F22', 'Rafale').
     """
     
     # Make the predictions
