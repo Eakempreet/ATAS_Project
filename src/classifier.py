@@ -27,6 +27,12 @@ import tensorflow_hub as hub
 from schemas import MODEL_PATHS
 import numpy as np
 
+# Prevent TF from allocating all VRAM at startup — allocate as needed instead.
+# Skipped automatically on CPU-only environments (e.g. Hugging Face Spaces).
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    tf.config.experimental.set_memory_growth(gpus[0], True)
+
 # Load the Keras model
 
 try:
