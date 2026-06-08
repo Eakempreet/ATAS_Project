@@ -65,7 +65,7 @@ def make_predictions(feature_dict):
             
             
     return {
-        'eta_seconds' : eta_prediction,
-        'hit_probability' : hit_prediction
+        "eta_seconds": float(eta_prediction),
+        "hit_probability": float(hit_prediction)
     }
     
