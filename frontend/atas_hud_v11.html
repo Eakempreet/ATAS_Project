@@ -597,7 +597,7 @@ async function startSimulation() {
     document.getElementById('sensor-status').innerText  = 'LOCKED';
     document.getElementById('sensor-status').style.color = '#e84444';
     
-    updateDOM(data, remainDist, azimuth, ownSpeedMS);
+    updateDOM(data, remainDist, azimuth, ownSpeedMS, enemyAltM);
 
   } catch (error) {
     console.error(error);
@@ -612,11 +612,12 @@ async function startSimulation() {
 // ──────────────────────────────────────────────
 // HUD UPDATER (Maps Real JSON to UI)
 // ──────────────────────────────────────────────
-function updateDOM(data, distMeters, azimuth, ownSpeedMS) {
+function updateDOM(data, distMeters, azimuth, ownSpeedMS, enemyAltM) {
+  console.log(data);
   const name = data.aircraft_name;
   const cat = getCategory(name);
-  const threatProb = Math.floor(data.hit_probability * 100);
   const isAA = data.no_aa_capability === 0;
+  const threatProb = isAA ? Math.floor(data.hit_probability * 100) : 0;
 
   // Determine colour based on threat
   let col = '#00d4b0'; // Safe
@@ -644,40 +645,45 @@ function updateDOM(data, distMeters, azimuth, ownSpeedMS) {
   // ── True Metadata ──
   document.getElementById('true-specs-box').style.display = 'block';
   document.getElementById('e-man').innerText  = data.maneuverability >= 2 ? "HIGH (2)" : (data.maneuverability === 1 ? "MED (1)" : "LOW (0)"); 
-  document.getElementById('e-alt').innerText  = "TRACKING";
+  document.getElementById('e-alt').textContent = Math.round(enemyAltM / 0.3048).toLocaleString() + ' FT';
   document.getElementById('e-gen').innerText  = 'GEN ' + data.enemy_generation.toFixed(1);
   document.getElementById('e-rng').innerText  = data.missile_range  > 0 ? (data.missile_range  / 1000).toFixed(0) + ' KM' : 'NONE';
   document.getElementById('e-mspd').innerText = data.missile_speed  > 0 ? data.missile_speed  + ' M/S' : 'N/A';
   document.getElementById('e-aa').innerText   = isAA ? 'YES' : 'NO';
 
   // ── Generation Advantage ──
-  const genDiff = currentOwn.gen - data.enemy_generation;
-  const advEl   = document.getElementById('gen-adv-val');
-  const advBox  = document.getElementById('gen-adv-box');
-  if (genDiff > 0) {
-    advEl.innerText = '+' + genDiff.toFixed(1) + ' FRIENDLY ADV';
-    advEl.style.color = '#2dd4a0';
-    advBox.style.borderColor = 'rgba(45,212,160,.28)';
-  } else if (genDiff < 0) {
-    advEl.innerText = genDiff.toFixed(1) + ' ENEMY ADV';
-    advEl.style.color = '#e84444';
-    advBox.style.borderColor = 'rgba(232,68,68,.28)';
+  if (isAA) {
+    const genDiff = currentOwn.gen - data.enemy_generation;
+    const advEl   = document.getElementById('gen-adv-val');
+    const advBox  = document.getElementById('gen-adv-box');
+
+    if (genDiff > 0) {
+      advEl.innerText = '+' + genDiff.toFixed(1) + ' FRIENDLY ADV';
+      advEl.style.color = '#2dd4a0';
+      advBox.style.borderColor = 'rgba(45,212,160,.28)';
+    } else if (genDiff < 0) {
+      advEl.innerText = genDiff.toFixed(1) + ' ENEMY ADV';
+      advEl.style.color = '#e84444';
+      advBox.style.borderColor = 'rgba(232,68,68,.28)';
+    } else {
+      advEl.innerText = 'PARITY';
+      advEl.style.color = '#f0a030';
+      advBox.style.borderColor = 'rgba(240,160,48,.28)';
+    }
   } else {
-    advEl.innerText = 'PARITY';
-    advEl.style.color = '#f0a030';
-    advBox.style.borderColor = 'rgba(240,160,48,.28)';
+    document.getElementById('gen-adv-val').textContent = 'N/A';
+    document.getElementById('gen-adv-box').style.borderColor = 'rgba(0,212,176,.18)';
   }
 
   // ── Threat Gauge ──
   const dash = (threatProb / 100) * 326;
   document.getElementById('threat-arc').style.strokeDasharray = `${dash} 326`;
   document.getElementById('threat-arc').style.stroke = col;
-  document.getElementById('threat-val').innerText = `${threatProb}%`;
+  document.getElementById('threat-val').textContent = `${threatProb}%`;
   document.getElementById('threat-val').setAttribute('fill', col);
   
-  let labelText = 'SAFE';
-  if (isAA) labelText = threatProb > 60 ? 'CRITICAL' : (threatProb > 30 ? 'ELEVATED' : 'LOW');
-  document.getElementById('threat-label').innerText = labelText;
+  let labelText = threatProb > 60 ? 'CRITICAL' : (threatProb > 30 ? 'ELEVATED' : 'LOW');
+  document.getElementById('threat-label').textContent = labelText;
   document.getElementById('threat-label').setAttribute('fill', col);
 
   // ── Kinematics ──
@@ -727,9 +733,9 @@ function clearTarget() {
   // Threat gauge
   document.getElementById('threat-arc').style.strokeDasharray = '0 326';
   document.getElementById('threat-arc').style.stroke = '#00d4b0';
-  document.getElementById('threat-val').innerText = '0%';
+  document.getElementById('threat-val').textContent = '0%';
   document.getElementById('threat-val').setAttribute('fill', '#00d4b0');
-  document.getElementById('threat-label').innerText = 'SAFE';
+  document.getElementById('threat-label').textContent = 'SAFE';
   document.getElementById('threat-label').setAttribute('fill', 'rgba(0,212,176,.5)');
 
   // Kinematics

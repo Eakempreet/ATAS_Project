@@ -29,7 +29,7 @@ import requests
 from pathlib import Path
 
 # Define image test path
-IMAGE_PATH = str(Path(__file__).parent.parent / 'assets'/ 'Su57.jpg')
+IMAGE_PATH = str(Path(__file__).parent.parent / 'assets'/ 'testing_images' / 'Su57.jpg')
 print(IMAGE_PATH)
 
 # Define Testing parameters
