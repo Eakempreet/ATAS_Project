@@ -30,6 +30,7 @@ main.py
 # Importing the necessary libraries
 from fastapi import FastAPI
 from fastapi import UploadFile, File, Form
+from fastapi.middleware.cors import CORSMiddleware
 import tempfile
 import os
 from src.classifier import predict_aircraft
@@ -41,6 +42,20 @@ from src.decision import get_recommendation
 
 # Creating a server
 app = FastAPI()
+
+
+# Allow the browser to send requests to this server
+# Without this, the HUD's fetch() call gets blocked by the browser's security rules
+# CORS (Cross-Origin Resource Sharing) is the mechanism where your server tells the browser: "yes, I allow requests from other origins."
+# allow_origins=["*"]  → accept requests from any origin (local file, any URL)
+# allow_methods=["*"]  → accept any HTTP method (POST, GET, etc.)
+# allow_headers=["*"]  → accept any headers the browser sends with the request
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # Function to take the inputs

@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATAS v2.5 Tactical MFD</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+body { background: #000; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; font-family: 'IBM Plex Mono', monospace; }
+
+/* ── Animations ── */
+.hb { animation: hblink 1.6s ease-in-out infinite; }
+@keyframes hblink { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes scan { 0%{top:0} 100%{top:100%} }
+@keyframes spin { 100%{transform:rotate(360deg)} }
+@keyframes critPulse { 0%,100%{box-shadow:0 0 0 0 rgba(232,68,68,0)} 50%{box-shadow:0 0 18px 6px rgba(232,68,68,.25)} }
+
+.scan-line {
+  width:100%; height:2px; background:rgba(0,212,176,.9); position:absolute;
+  box-shadow:0 0 14px #00d4b0; animation:scan 1.4s linear infinite; z-index:5; display:none;
+}
+.rotor-spin { transform-origin:60px 45px; animation:spin .15s linear infinite; }
+.threat-critical { animation:critPulse 1s ease-in-out infinite; }
+
+/* ── Reusable classes ── */
+.bc { position:absolute; width:15px; height:15px; }
+.bc-tl { top:-1px; left:-1px; border-top:2px solid #00d4b0; border-left:2px solid #00d4b0; }
+.bc-tr { top:-1px; right:-1px; border-top:2px solid #00d4b0; border-right:2px solid #00d4b0; }
+.bc-bl { bottom:-1px; left:-1px; border-bottom:2px solid #00d4b0; border-left:2px solid #00d4b0; }
+.bc-br { bottom:-1px; right:-1px; border-bottom:2px solid #00d4b0; border-right:2px solid #00d4b0; }
+
+.panel {
+  border:1px solid rgba(0,212,176,.2); background:rgba(0,212,176,.025);
+  padding:11px; position:relative;
+}
+.panel-label {
+  font-size:9px; color:rgba(0,212,176,.4); letter-spacing:.2em;
+  margin-bottom:8px; text-transform:uppercase;
+}
+.data-row {
+  display:flex; justify-content:space-between; align-items:center;
+  border-bottom:1px solid rgba(0,212,176,.08); padding-bottom:4px; margin-bottom:4px;
+  font-size:9px;
+}
+.data-row:last-child { border-bottom:none; margin-bottom:0; }
+.data-key { color:rgba(0,212,176,.45); letter-spacing:.05em; }
+.data-val { color:#00d4b0; font-size:10px; font-weight:600; }
+
+.tac-slider {
+  -webkit-appearance:none; width:100%; height:2px;
+  background:rgba(0,212,176,.2); outline:none; margin:8px 0; display:block;
+}
+.tac-slider::-webkit-slider-thumb {
+  -webkit-appearance:none; width:8px; height:14px; background:#00d4b0;
+  cursor:pointer; border-radius:1px; box-shadow:0 0 5px rgba(0,212,176,.8);
+}
+.tac-select {
+  background:rgba(0,212,176,.05); border:1px solid rgba(0,212,176,.3);
+  color:#00d4b0; font-family:'IBM Plex Mono',monospace; font-size:10px;
+  padding:4px; outline:none; width:100%; cursor:pointer;
+}
+.tac-select option { background:#06070b; color:#00d4b0; }
+
+.tactical-feed {
+  width:100%; height:100%; object-fit:cover;
+  filter:grayscale(100%) sepia(100%) hue-rotate(130deg) saturate(300%) contrast(1.2);
+  opacity:.7; display:none; position:absolute; top:0; left:0; z-index:1;
+}
+
+/* Countermeasure toggle and Action Buttons */
+.cm-btn {
+  cursor:pointer; border:1px solid rgba(0,212,176,.3);
+  background:rgba(0,212,176,.04); color:rgba(0,212,176,.6);
+  font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em;
+  padding:8px 8px; width:100%; text-align:center; transition:all .2s;
+}
+.cm-btn:hover { background:rgba(0,212,176,.1); border-color:#00d4b0; color:#00d4b0; }
+.cm-btn.deployed { border-color:#f0a030; background:rgba(240,160,48,.1); color:#f0a030; }
+.cm-btn.deployed:hover { background:rgba(240,160,48,.2); }
+
+.clear-btn {
+  margin-top:6px; border:1px solid rgba(0,212,176,.15); padding:4px 8px;
+  text-align:center; font-size:8px; color:rgba(0,212,176,.4); letter-spacing:.1em;
+  cursor:pointer; display:none; transition:all .2s;
+}
+.clear-btn:hover { border-color:rgba(0,212,176,.4); color:rgba(0,212,176,.7); }
+</style>
+</head>
+<body>
+
+<div style="background:#020203;padding:10px;border-radius:12px;box-shadow:inset 0 0 40px rgba(0,0,0,.8);width:880px;">
+<div id="main-hud" style="position:relative;background:#06070b;border:1px solid rgba(0,212,176,.1);padding:20px;">
+
+  <div class="bc" style="top:5px;left:5px;border-top:3px solid #00d4b0;border-left:3px solid #00d4b0;"></div>
+  <div class="bc" style="top:5px;right:5px;border-top:3px solid #00d4b0;border-right:3px solid #00d4b0;"></div>
+  <div class="bc" style="bottom:5px;left:5px;border-bottom:3px solid #00d4b0;border-left:3px solid #00d4b0;"></div>
+  <div class="bc" style="bottom:5px;right:5px;border-bottom:3px solid #00d4b0;border-right:3px solid #00d4b0;"></div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid rgba(0,212,176,.12);padding-bottom:12px;margin-bottom:14px;">
+    <div style="display:flex;align-items:baseline;gap:8px;">
+      <span style="font-size:18px;font-weight:700;letter-spacing:.3em;color:#00d4b0;">ATAS</span>
+      <span style="font-size:9px;color:rgba(0,212,176,.35);letter-spacing:.12em;">v2.5 // TACTICAL MFD PIPELINE</span>
+    </div>
+    <span id="header-alert" style="font-size:10px;color:rgba(0,212,176,.3);letter-spacing:.2em;font-weight:700;">SCANNING AIRSPACE</span>
+    <div style="font-size:9px;display:flex;gap:10px;">
+      <span style="color:#2dd4a0;">● UPLINK SECURE</span>
+      <span style="color:rgba(0,212,176,.4);">SYS.TIME: <span id="sys-time">00:00:00 IST</span></span>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1.55fr 1fr;gap:14px;margin-bottom:12px;">
+
+    <div style="display:flex;flex-direction:column;gap:12px;">
+
+      <div class="panel">
+        <div class="bc bc-tl"></div><div class="bc bc-tr"></div>
+        <div class="bc bc-bl"></div><div class="bc bc-br"></div>
+        <div class="panel-label" style="display:flex;justify-content:space-between;">
+          <span>LIVE CAMERA FEED</span>
+          <span id="sensor-status" style="color:rgba(0,212,176,.3);">STANDBY</span>
+        </div>
+        <div id="sensor-feed"
+          style="border:1px dashed rgba(0,212,176,.28);background:rgba(0,0,0,.6);height:108px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;cursor:pointer;"
+          onclick="document.getElementById('file-upload').click()">
+          <input type="file" id="file-upload" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+          <div class="scan-line" id="scan-line"></div>
+          <img id="sensor-img" class="tactical-feed" alt="sensor feed">
+          <div id="sensor-text" style="font-size:9px;color:rgba(0,212,176,.38);letter-spacing:.1em;text-align:center;z-index:2;position:relative;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:5px;opacity:.55;display:block;margin-left:auto;margin-right:auto;">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+            </svg>
+            UPLOAD TARGET PHOTO
+          </div>
+          <div style="position:absolute;top:50%;left:50%;width:22px;height:1px;background:rgba(0,212,176,.25);transform:translate(-50%,-50%);z-index:3;"></div>
+          <div style="position:absolute;top:50%;left:50%;width:1px;height:22px;background:rgba(0,212,176,.25);transform:translate(-50%,-50%);z-index:3;"></div>
+        </div>
+        <div id="clear-btn" class="clear-btn" onclick="clearTarget()">↺ CLEAR TARGET LOCK</div>
+      </div>
+
+      <div class="panel" style="border-color:rgba(0,212,176,.28);background:rgba(0,212,176,.04);">
+        <div class="bc bc-tl"></div><div class="bc bc-tr"></div>
+        <div class="bc bc-bl"></div><div class="bc bc-br"></div>
+        <div style="font-size:9px;color:#00d4b0;letter-spacing:.15em;font-weight:700;margin-bottom:10px;">FRIENDLY PLATFORM</div>
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;">
+          <svg width="36" height="36" viewBox="0 0 100 100" style="opacity:.8;flex-shrink:0;">
+            <polygon points="50,10 55,30 90,65 90,75 60,70 60,90 70,100 30,100 40,90 40,70 10,75 10,65 45,30" fill="none" stroke="#00d4b0" stroke-width="2"/>
+            <line x1="50" y1="10" x2="50" y2="90" stroke="rgba(0,212,176,.3)" stroke-width="1"/>
+          </svg>
+          <select id="own-platform-select" class="tac-select" style="flex:1;" onchange="updateOwnPlatform()"></select>
+        </div>
+        <div style="font-size:9px;color:rgba(0,212,176,.6);">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+            <span>AIRSPEED (MACH)</span>
+            <span>MAX <span id="max-spd-label">1.8</span> | <span id="val-spd" style="color:#00d4b0;font-weight:700;">1.20</span></span>
+          </div>
+          <input type="range" class="tac-slider" id="slide-spd" min="0.5" max="1.8" step="0.01" value="1.20" oninput="updateOwnSliders()">
+          <div style="display:flex;justify-content:space-between;margin-bottom:2px;">
+            <span>ALTITUDE (FT)</span>
+            <span>Max <span id="max-alt-label">60k</span> | <span id="val-alt" style="color:#00d4b0;font-weight:700;">32,000</span></span>
+          </div>
+          <input type="range" class="tac-slider" id="slide-alt" min="5000" max="60000" step="500" value="32000" oninput="updateOwnSliders()">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;font-size:8px;margin-top:4px;">
+          <div style="background:rgba(0,0,0,.3);padding:4px;border-left:1px solid rgba(0,212,176,.35);">
+            <div style="color:rgba(0,212,176,.4);">GENERATION</div>
+            <div id="own-gen-label" style="color:#2dd4a0;">4.5</div>
+          </div>
+          <div style="background:rgba(0,0,0,.3);padding:4px;border-left:1px solid rgba(0,212,176,.35);">
+            <div style="color:rgba(0,212,176,.4);">MANEUVER</div>
+            <div id="own-man-label" style="color:#2dd4a0;">HIGH (2)</div>
+          </div>
+        </div>
+
+        <div id="start-btn" class="cm-btn" style="margin-top:12px; border-color:#00d4b0; color:#00d4b0; font-weight:bold; letter-spacing:0.15em;" onclick="startSimulation()">▶ START SIMULATION</div>
+      </div>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;">
+      <div class="bc bc-tl"></div><div class="bc bc-tr"></div>
+      <div class="bc bc-bl"></div><div class="bc bc-br"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-size:10px;color:#00d4b0;letter-spacing:.2em;font-weight:700;">TARGET CLASSIFIER</div>
+        <span style="font-size:7px;color:rgba(0,212,176,.35);background:rgba(0,212,176,.05);padding:2px 6px;border:1px solid rgba(0,212,176,.18);letter-spacing:.07em;">EFFICIENTNETV2-L · 78.08%</span>
+      </div>
+
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:1px solid rgba(0,212,176,.05);background:rgba(0,0,0,.3);padding:10px;position:relative;overflow:hidden;">
+        <svg width="100%" height="100%" style="position:absolute;top:0;left:0;opacity:.07;pointer-events:none;">
+          <line x1="50%" y1="0" x2="50%" y2="100%" stroke="#00d4b0" stroke-width="1"/>
+          <line x1="0" y1="50%" x2="100%" y2="50%" stroke="#00d4b0" stroke-width="1"/>
+          <circle cx="50%" cy="50%" r="45" fill="none" stroke="#00d4b0" stroke-width="1"/>
+          <circle cx="50%" cy="50%" r="85" fill="none" stroke="#00d4b0" stroke-width="1" stroke-dasharray="2 4"/>
+        </svg>
+
+        <svg id="target-svg" width="158" height="158" viewBox="0 0 120 120"
+          style="margin-bottom:8px;z-index:1;position:relative;filter:drop-shadow(0 0 6px currentColor);flex-shrink:0;"></svg>
+        <div id="target-info" style="text-align:center;width:100%;z-index:1;position:relative;"></div>
+
+        <div id="true-specs-box" style="display:none;width:100%;margin-top:8px;border-top:1px dashed rgba(255,255,255,.1);padding-top:8px;z-index:1;position:relative;">
+          <div style="font-size:8px;color:rgba(255,255,255,.3);margin-bottom:5px;letter-spacing:.1em;">THREAT METADATA // LOOKUP TABLE</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:3px;font-size:9px;">
+            <div style="padding:4px;background:rgba(0,0,0,.45);border-left:1px solid #444;">
+              <span style="color:rgba(255,255,255,.28);font-size:7px;display:block;">MANEUVER</span>
+              <span id="e-man" style="color:#ccc;">---</span>
+            </div>
+            <div style="padding:4px;background:rgba(0,0,0,.45);border-left:1px solid #444;">
+              <span style="color:rgba(255,255,255,.28);font-size:7px;display:block;">ALTITUDE</span>
+              <span id="e-alt" style="color:#ccc;">---</span>
+            </div>
+            <div style="padding:4px;background:rgba(0,0,0,.45);border-left:1px solid #444;">
+              <span style="color:rgba(255,255,255,.28);font-size:7px;display:block;">GENERATION</span>
+              <span id="e-gen" style="color:#ccc;">---</span>
+            </div>
+            <div style="padding:4px;background:rgba(0,0,0,.45);border-left:1px solid #444;">
+              <span style="color:rgba(255,255,255,.28);font-size:7px;display:block;">MSL RANGE</span>
+              <span id="e-rng" style="color:#ccc;">---</span>
+            </div>
+            <div style="padding:4px;background:rgba(0,0,0,.45);border-left:1px solid #444;">
+              <span style="color:rgba(255,255,255,.28);font-size:7px;display:block;">MSL SPEED</span>
+              <span id="e-mspd" style="color:#ccc;">---</span>
+            </div>
+            <div style="padding:4px;background:rgba(0,0,0,.45);border-left:1px solid #444;">
+              <span style="color:rgba(255,255,255,.28);font-size:7px;display:block;">AA CAPABLE</span>
+              <span id="e-aa" style="color:#ccc;">---</span>
+            </div>
+          </div>
+          <div id="gen-adv-box" style="margin-top:4px;padding:4px 7px;border:1px solid rgba(0,212,176,.18);font-size:8px;display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:rgba(0,212,176,.4);letter-spacing:.08em;">GENERATION ADVANTAGE</span>
+            <span id="gen-adv-val" style="font-weight:700;color:#00d4b0;">--</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" style="display:flex;flex-direction:column;align-items:center;">
+      <div class="bc bc-tl"></div><div class="bc bc-tr"></div>
+      <div class="bc bc-bl"></div><div class="bc bc-br"></div>
+
+      <div class="panel-label" style="width:100%;text-align:center;margin-bottom:10px;">THREAT KINEMATICS</div>
+
+      <svg width="138" height="138" viewBox="0 0 132 132" style="flex-shrink:0;">
+        <circle cx="66" cy="66" r="58" fill="none" stroke="rgba(0,212,176,.05)" stroke-width="1" stroke-dasharray="2,4"/>
+        <circle cx="66" cy="66" r="52" fill="none" stroke="rgba(0,212,176,.1)" stroke-width="4"/>
+        <circle id="threat-arc" cx="66" cy="66" r="52" fill="none" stroke="#00d4b0" stroke-width="5"
+          stroke-dasharray="0 326" transform="rotate(-90 66 66)" style="transition:stroke-dasharray .5s ease-out,stroke .3s;"/>
+        <circle cx="66" cy="66" r="44" fill="none" stroke="rgba(0,212,176,.09)" stroke-width="9"/>
+        <circle cx="66" cy="66" r="35" fill="rgba(4,4,9,.92)" stroke="rgba(0,212,176,.14)" stroke-width=".8"/>
+        <line x1="66" y1="5" x2="66" y2="14" stroke="rgba(0,212,176,.4)" stroke-width="1"/>
+        <line x1="127" y1="66" x2="118" y2="66" stroke="rgba(0,212,176,.4)" stroke-width="1"/>
+        <line x1="66" y1="127" x2="66" y2="118" stroke="rgba(0,212,176,.4)" stroke-width="1"/>
+        <line x1="5" y1="66" x2="14" y2="66" stroke="rgba(0,212,176,.4)" stroke-width="1"/>
+        <text id="threat-val" x="66" y="59" text-anchor="middle" fill="#00d4b0"
+          font-family="'IBM Plex Mono',monospace" font-size="22" font-weight="700">0%</text>
+        <text id="threat-label" x="66" y="71" text-anchor="middle" fill="rgba(0,212,176,.5)"
+          font-family="'IBM Plex Mono',monospace" font-size="8" letter-spacing="2">SAFE</text>
+        <text x="66" y="81" text-anchor="middle" fill="rgba(0,212,176,.3)"
+          font-family="'IBM Plex Mono',monospace" font-size="5.5" letter-spacing="0">HIT PROBABILITY</text>
+      </svg>
+
+      <div style="width:100%;margin-top:10px;display:flex;flex-direction:column;gap:0;">
+        <div class="data-row">
+          <span class="data-key">EVASION ETA</span>
+          <span id="eta-val" class="data-val">N/A</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">CLOSURE RATE</span>
+          <span id="close-val" class="data-val">0 M/S</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">DIST TO TGT</span>
+          <span id="dist-val" class="data-val">---</span>
+        </div>
+        <div class="data-row">
+          <span class="data-key">ASPECT ANGLE</span>
+          <span id="aspect-val" class="data-val">---</span>
+        </div>
+        <div class="data-row" style="border-bottom:1px solid rgba(0,212,176,.08);padding-bottom:4px;margin-bottom:8px;">
+          <span class="data-key">MSL PHASE</span>
+          <span id="phase-val" class="data-val">---</span>
+        </div>
+      </div>
+
+      <div id="cm-toggle" class="cm-btn" onclick="toggleCM()">
+        CM: <span id="cm-status">NOT DEPLOYED</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px;margin-bottom:8px;align-items:stretch;min-height:42px;">
+    <div id="tac-banner" style="flex:1;border:1px solid rgba(0,212,176,.2);background:rgba(0,212,176,.05);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;transition:all .3s;">
+      <span style="font-size:9px;color:rgba(0,212,176,.45);letter-spacing:.15em;white-space:nowrap;flex-shrink:0;">SYS ACTION</span>
+      <span id="tac-text" style="font-size:12px;font-weight:700;letter-spacing:.15em;color:#00d4b0;text-align:center;flex:1;">CONTINUE SCANNING SECTOR</span>
+      <span id="conf-text" style="font-size:9px;color:rgba(0,212,176,.45);white-space:nowrap;flex-shrink:0;">SYS NORMAL</span>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;font-size:8px;color:rgba(0,212,176,.22);letter-spacing:.05em;">
+    <span>CLASSIFIER: EFFICIENTNETV2-L · TOP-1 78.08% · TOP-5 92.02%</span>
+    <span>ETA: XGBOOST · R²=0.9939 · MAE=0.46s</span>
+    <span>HIT CLASSIFIER: XGBOOST · F1=0.9968</span>
+    <span>SYSTEM: ATAS PIPELINE ONLINE</span>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// CLOCK (Indian Standard Time)
+// ──────────────────────────────────────────────
+setInterval(() => {
+  const now = new Date();
+  const options = { timeZone: 'Asia/Kolkata', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' };
+  document.getElementById('sys-time').innerText = now.toLocaleTimeString('en-IN', options) + ' IST';
+}, 1000);
+
+// ──────────────────────────────────────────────
+// ENEMY DATABASE (For Left Column UI population)
+// ──────────────────────────────────────────────
+const enemyDB = {
+  "A10":         {aircraft_max_speed:222,  enemy_generation:4.0, maneuverability:1},
+  "A400M":       {aircraft_max_speed:255,  enemy_generation:4.0, maneuverability:0},
+  "AG600":       {aircraft_max_speed:155,  enemy_generation:4.0, maneuverability:0},
+  "AH64":        {aircraft_max_speed:101,  enemy_generation:4.0, maneuverability:1},
+  "B21":         {aircraft_max_speed:277,  enemy_generation:5.0, maneuverability:0},
+  "F16":         {aircraft_max_speed:590,  enemy_generation:4.0, maneuverability:2},
+  "F22":         {aircraft_max_speed:669,  enemy_generation:5.0, maneuverability:2},
+  "Il76":        {aircraft_max_speed:250,  enemy_generation:3.5, maneuverability:0},
+  "J20":         {aircraft_max_speed:590,  enemy_generation:5.0, maneuverability:2},
+  "MQ9":         {aircraft_max_speed:134,  enemy_generation:4.0, maneuverability:1},
+  "Rafale":      {aircraft_max_speed:531,  enemy_generation:4.5, maneuverability:2},
+  "WZ9":         {aircraft_max_speed:85,   enemy_generation:4.0, maneuverability:1},
+  "Su57":        {aircraft_max_speed:590,  enemy_generation:5.0, maneuverability:2}
+};
+
+const fullList = [
+  'A10','A400M','AG600','AH64','AKINCI','AV8B','An124','An22','An225','An72',
+  'B1','B2','B21','B52','Be200','C1','C130','C17','C2','C390','C5','CH47','CH53',
+  'CL415','E2','E7','EF2000','EMB314','F117','F14','F15','F16','F18','F2','F22',
+  'F35','F4','FCK1','H6','Il76','J10','J20','J35','J36','J50','JAS39','JF17',
+  'JH7','KAAN','KC135','KF21','KIZILELMA','KJ600','Ka27','Ka52','MQ20','MQ25',
+  'MQ28','MQ9','Mi24','Mi26','Mi28','Mi8','Mig29','Mig31','Mirage2000','NH90',
+  'P3','RQ4','Rafale','SR71','Su24','Su25','Su34','Su47','Su57','T50','TB001',
+  'TB2','Tejas','Tornado','Tu160','Tu22M','Tu95','U2','UH60','US2','V22','V280',
+  'Vulcan','WZ10','WZ7','WZ9','X29','X32','XB70','XQ58','Y20','YF23','Z10','Z19','Z21'
+];
+fullList.forEach(ac => {
+  if (!enemyDB[ac]) enemyDB[ac] = {
+    aircraft_max_speed:400, enemy_generation:4.0, maneuverability:1
+  };
+});
+
+let currentOwn = {};
+const ownSelect = document.getElementById('own-platform-select');
+fullList.forEach(ac => {
+  const opt = document.createElement('option');
+  opt.value = ac;
+  opt.innerText = ac + ' (GEN ' + enemyDB[ac].enemy_generation.toFixed(1) + ')';
+  ownSelect.appendChild(opt);
+});
+ownSelect.value = 'Tejas';
+
+// ──────────────────────────────────────────────
+// STATE & TOGGLES
+// ──────────────────────────────────────────────
+let cmDeployed = false;
+let isUI_Locked = false;
+let uploadedFile = null;
+
+function toggleCM() {
+  if (isUI_Locked) return;
+  cmDeployed = !cmDeployed;
+  const btn = document.getElementById('cm-toggle');
+  document.getElementById('cm-status').innerText = cmDeployed ? 'DEPLOYED' : 'NOT DEPLOYED';
+  cmDeployed ? btn.classList.add('deployed') : btn.classList.remove('deployed');
+}
+
+function updateOwnPlatform() {
+  if (isUI_Locked) return;
+  const key  = document.getElementById('own-platform-select').value;
+  const data = enemyDB[key];
+  const cat  = getCategory(key);
+  const machMax = parseFloat(Math.max(0.8, (data.aircraft_max_speed / 340)).toFixed(2));
+  const altMax  = cat === 'fighter' ? 60000 : (cat === 'helo' ? 20000 : 42000);
+
+  currentOwn = {
+    max_spd: machMax, max_alt: altMax,
+    gen: data.enemy_generation, man: data.maneuverability,
+    name_man: data.maneuverability >= 2 ? 'HIGH (' + data.maneuverability + ')'
+            : (data.maneuverability === 1 ? 'MED (1)' : 'LOW (0)')
+  };
+
+  document.getElementById('max-spd-label').innerText = currentOwn.max_spd;
+  document.getElementById('max-alt-label').innerText = (currentOwn.max_alt / 1000) + 'k';
+  document.getElementById('own-gen-label').innerText = currentOwn.gen.toFixed(1);
+  document.getElementById('own-man-label').innerText = currentOwn.name_man;
+  document.getElementById('slide-spd').max = currentOwn.max_spd;
+  document.getElementById('slide-alt').max = currentOwn.max_alt;
+  
+  if (parseFloat(document.getElementById('slide-spd').value) > currentOwn.max_spd)
+    document.getElementById('slide-spd').value = currentOwn.max_spd;
+  if (parseFloat(document.getElementById('slide-alt').value) > currentOwn.max_alt)
+    document.getElementById('slide-alt').value = currentOwn.max_alt;
+    
+  updateOwnSliders();
+}
+
+function updateOwnSliders() {
+  if (isUI_Locked) return;
+  document.getElementById('val-spd').innerText = parseFloat(document.getElementById('slide-spd').value).toFixed(2);
+  document.getElementById('val-alt').innerText = parseInt(document.getElementById('slide-alt').value).toLocaleString();
+}
+
+function setLockState(locked) {
+  isUI_Locked = locked;
+  document.getElementById('slide-spd').disabled = locked;
+  document.getElementById('slide-alt').disabled = locked;
+  document.getElementById('own-platform-select').disabled = locked;
+  
+  const opacityVal = locked ? '0.3' : '1';
+  const pointerVal = locked ? 'none' : 'auto';
+  
+  document.getElementById('start-btn').style.opacity = opacityVal;
+  document.getElementById('start-btn').style.pointerEvents = pointerVal;
+  
+  document.getElementById('cm-toggle').style.opacity = opacityVal;
+  document.getElementById('cm-toggle').style.pointerEvents = pointerVal;
+  
+  document.getElementById('sensor-feed').style.pointerEvents = pointerVal;
+}
+
+// ──────────────────────────────────────────────
+// AIRCRAFT BLUEPRINTS (SVG) & CATEGORIES
+// ──────────────────────────────────────────────
+const premiumSVGs = {
+  none: `
+    <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(0,212,176,0.08)" stroke-width="1"/>
+    <circle cx="60" cy="60" r="25" fill="none" stroke="rgba(0,212,176,0.05)" stroke-width="1" stroke-dasharray="3 5"/>
+    <line x1="60" y1="10" x2="60" y2="110" stroke="rgba(0,212,176,0.12)" stroke-width="1"/>
+    <line x1="10" y1="60" x2="110" y2="60" stroke="rgba(0,212,176,0.12)" stroke-width="1"/>
+    <circle cx="60" cy="60" r="3" fill="#00d4b0" opacity="0.5"/>`,
+
+  fighter: `
+    <g transform="translate(0,5)">
+      <polygon points="60,30 20,70 20,85 45,80 60,85" fill="rgba(232,68,68,0.1)" stroke="currentColor" stroke-width="1.2"/>
+      <polygon points="60,30 100,70 100,85 75,80 60,85" fill="rgba(232,68,68,0.1)" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M60,10 L65,30 L70,70 L68,100 L52,100 L50,70 L55,30 Z" fill="rgba(232,68,68,0.15)" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M58,25 L62,25 L63,40 L57,40 Z" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.8"/>
+      <line x1="60" y1="40" x2="60" y2="100" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+      <rect x="53" y="95" width="4" height="10" fill="rgba(0,0,0,0.8)" stroke="currentColor" stroke-width="1"/>
+      <rect x="63" y="95" width="4" height="10" fill="rgba(0,0,0,0.8)" stroke="currentColor" stroke-width="1"/>
+      <polygon points="52,80 40,105 48,105 54,90" fill="rgba(232,68,68,0.2)" stroke="currentColor" stroke-width="1"/>
+      <polygon points="68,80 80,105 72,105 66,90" fill="rgba(232,68,68,0.2)" stroke="currentColor" stroke-width="1"/>
+    </g>`,
+
+  bomber: `
+    <g transform="translate(0,15)">
+      <path d="M60,10 L110,60 L90,75 L75,65 L60,75 L45,65 L30,75 L10,60 Z"
+        fill="rgba(232,68,68,0.15)" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M55,25 L65,25 L62,30 L58,30 Z" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.8"/>
+      <line x1="50" y1="60" x2="50" y2="70" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <line x1="70" y1="60" x2="70" y2="70" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <path d="M45,65 Q60,55 75,65" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2,2" opacity="0.6"/>
+    </g>`,
+
+  helo: `
+    <g transform="translate(0,5)">
+      <g class="rotor-spin">
+        <circle cx="60" cy="45" r="45" fill="rgba(240,160,48,0.04)" stroke="currentColor" stroke-width="0.5" stroke-dasharray="2 6"/>
+        <line x1="60" y1="2" x2="60" y2="88" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+        <line x1="17" y1="45" x2="103" y2="45" stroke="currentColor" stroke-width="1.5" opacity="0.7"/>
+        <circle cx="60" cy="45" r="3" fill="currentColor" opacity="0.9"/>
+      </g>
+      <path d="M60,15 C63,15 65,20 65,35 L62,65 L58,65 L55,35 C55,20 57,15 60,15 Z"
+        fill="rgba(240,160,48,0.2)" stroke="currentColor" stroke-width="1.5"/>
+      <rect x="42" y="42" width="13" height="4" fill="rgba(240,160,48,0.1)" stroke="currentColor" stroke-width="1"/>
+      <rect x="65" y="42" width="13" height="4" fill="rgba(240,160,48,0.1)" stroke="currentColor" stroke-width="1"/>
+      <polygon points="58,65 62,65 61,95 59,95" fill="rgba(240,160,48,0.15)" stroke="currentColor" stroke-width="1.2"/>
+      <polygon points="50,88 70,88 70,92 50,92" fill="rgba(240,160,48,0.1)" stroke="currentColor" stroke-width="1"/>
+      <g style="transform-origin:60px 98px;" class="rotor-spin">
+        <line x1="52" y1="98" x2="68" y2="98" stroke="currentColor" stroke-width="1"/>
+        <line x1="60" y1="90" x2="60" y2="106" stroke="currentColor" stroke-width="1"/>
+      </g>
+    </g>`,
+
+  cargo: `
+    <g transform="translate(0,5)">
+      <defs>
+        <filter id="eGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="1.5" result="b"/>
+          <feComposite in="SourceGraphic" in2="b" operator="over"/>
+        </filter>
+      </defs>
+      <path d="M54,40 L10,65 L8,75 L25,72 L54,55 Z" fill="rgba(0,212,176,0.1)" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M66,40 L110,65 L112,75 L95,72 L66,55 Z" fill="rgba(0,212,176,0.1)" stroke="currentColor" stroke-width="1.2"/>
+      <rect x="28" y="52" width="5" height="12" rx="2" fill="rgba(0,0,0,.8)" stroke="currentColor" stroke-width="1"/>
+      <rect x="40" y="47" width="5" height="14" rx="2" fill="rgba(0,0,0,.8)" stroke="currentColor" stroke-width="1"/>
+      <rect x="87" y="52" width="5" height="12" rx="2" fill="rgba(0,0,0,.8)" stroke="currentColor" stroke-width="1"/>
+      <rect x="75" y="47" width="5" height="14" rx="2" fill="rgba(0,0,0,.8)" stroke="currentColor" stroke-width="1"/>
+      <path d="M29,64 L32,64 L30.5,72 Z" fill="#ffaa00" opacity="0.8"/>
+      <path d="M41,61 L44,61 L42.5,70 Z" fill="#ffaa00" opacity="0.8"/>
+      <path d="M88,64 L91,64 L89.5,72 Z" fill="#ffaa00" opacity="0.8"/>
+      <path d="M76,61 L79,61 L77.5,70 Z" fill="#ffaa00" opacity="0.8"/>
+      <path d="M60,10 C68,10 70,18 70,45 L66,95 L54,95 L50,45 C50,18 52,10 60,10 Z"
+        fill="rgba(0,212,176,0.15)" stroke="currentColor" stroke-width="1.5"/>
+      <polygon points="60,100 85,108 85,112 60,105 35,112 35,108"
+        fill="rgba(0,212,176,0.2)" stroke="currentColor" stroke-width="1.5"/>
+    </g>`
+};
+
+function getCategory(name) {
+  const bombers = ['B1','B2','B21','B52','H6','Tu160','Tu22M','Tu95','Vulcan','XB70'];
+  const cargo   = ['A400M','An124','An22','An225','An72','C1','C130','C17','C2','C390',
+                   'C5','Il76','KC135','Y20','P3','E2','E7','KJ600','AG600','Be200','CL415','US2'];
+  const helo    = ['AH64','CH47','CH53','Ka27','Ka52','Mi24','Mi26','Mi28','Mi8',
+                   'NH90','UH60','WZ10','WZ9','Z10','Z19','Z21','V22','V280'];
+  if (bombers.includes(name)) return 'bomber';
+  if (cargo.includes(name))   return 'cargo';
+  if (helo.includes(name))    return 'helo';
+  return 'fighter';
+}
+
+function aspectDescriptor(angle) {
+  if (angle < 30)  return '(HEAD-ON)';
+  if (angle > 150) return '(TAIL)';
+  if (angle > 75 && angle < 105) return '(BEAM)';
+  return '(OBLIQUE)';
+}
+
+// ──────────────────────────────────────────────
+// BACKEND API INTEGRATION (The Real Brain)
+// ──────────────────────────────────────────────
+function handleImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  uploadedFile = file;
+
+  const img = document.getElementById('sensor-img');
+  img.src = URL.createObjectURL(file);
+  img.style.display = 'block';
+  document.getElementById('sensor-text').style.display = 'none';
+  document.getElementById('sensor-status').innerText  = 'TARGET ACQUIRED';
+  document.getElementById('sensor-status').style.color = '#00d4b0';
+}
+
+async function startSimulation() {
+  if (isUI_Locked) return;
+  if (!uploadedFile) {
+    alert("Please upload a target photo to initiate pipeline.");
+    return;
+  }
+
+  // 1. Enter Loading State & Lock UI
+  setLockState(true);
+  document.getElementById('sensor-status').innerText  = 'UPLINK ACTIVE...';
+  document.getElementById('sensor-status').style.color = '#f0a030';
+  document.getElementById('scan-line').style.display   = 'block';
+  document.getElementById('clear-btn').style.display = 'none';
+  
+  // 2. Gather UI values and generate plausible geometry for missing fields
+  const ownSpeedMS = parseFloat(document.getElementById('slide-spd').value) * 340;
+  const ownAltM    = parseInt(document.getElementById('slide-alt').value) * 0.3048;
+  const enemyAltM  = Math.floor(Math.random() * 9000 + 1000); 
+  const launchDist = Math.floor(Math.random() * 25000 + 10000);
+  const remainDist = Math.floor(Math.random() * launchDist);
+  const azimuth    = Math.floor(Math.random() * 180);
+  const elevation  = Math.floor(Math.random() * 20);
+  const friendly   = document.getElementById('own-platform-select').value || 'Tejas';
+
+  // 3. Construct Payload
+  const formData = new FormData();
+  formData.append('image', uploadedFile);
+  formData.append('your_speed', ownSpeedMS);
+  formData.append('your_altitude', ownAltM);
+  formData.append('enemy_altitude', enemyAltM);
+  formData.append('countermeasure_deployed', cmDeployed ? 1 : 0);
+  formData.append('launch_distance', launchDist);
+  formData.append('remaining_distance', remainDist);
+  formData.append('azimuth', azimuth);
+  formData.append('elevation', elevation);
+  formData.append('friendly_aircraft', friendly);
+
+  try {
+    // 4. Fire to FastAPI Backend
+    const response = await fetch('http://localhost:8000/analyze', {
+        method: 'POST',
+        body: formData
+    });
+
+    if (!response.ok) throw new Error("API Connection Failed");
+    const data = await response.json();
+
+    // 5. Success - Proceed to DOM update
+    document.getElementById('scan-line').style.display  = 'none';
+    document.getElementById('sensor-status').innerText  = 'LOCKED';
+    document.getElementById('sensor-status').style.color = '#e84444';
+    
+    updateDOM(data, remainDist, azimuth, ownSpeedMS);
+
+  } catch (error) {
+    console.error(error);
+    document.getElementById('scan-line').style.display  = 'none';
+    document.getElementById('sensor-status').innerText  = 'UPLINK FAILED';
+    document.getElementById('sensor-status').style.color = '#e84444';
+  } finally {
+    setLockState(false);
+  }
+}
+
+// ──────────────────────────────────────────────
+// HUD UPDATER (Maps Real JSON to UI)
+// ──────────────────────────────────────────────
+function updateDOM(data, distMeters, azimuth, ownSpeedMS) {
+  const name = data.aircraft_name;
+  const cat = getCategory(name);
+  const threatProb = Math.floor(data.hit_probability * 100);
+  const isAA = data.no_aa_capability === 0;
+
+  // Determine colour based on threat
+  let col = '#00d4b0'; // Safe
+  if (isAA) {
+    if (threatProb > 60 || data.eta_seconds < 10) col = '#e84444'; // Crit
+    else if (threatProb > 30) col = '#f0a030'; // Warn
+  }
+
+  // ── Header ──
+  const hdr = document.getElementById('header-alert');
+  hdr.innerText = 'TARGET LOCKED: ' + name.toUpperCase();
+  hdr.style.color = '#e84444';
+  hdr.classList.add('hb');
+
+  // ── SVG Canvas ──
+  const svgNode = document.getElementById('target-svg');
+  svgNode.style.color = col;
+  svgNode.innerHTML = premiumSVGs[cat];
+
+  document.getElementById('target-info').innerHTML = `
+    <div style="font-size:15px;font-weight:700;letter-spacing:.1em;color:${col};margin-top:5px;">${name.toUpperCase()}</div>
+    <div style="font-size:8px;color:rgba(255,255,255,.35);letter-spacing:.1em;margin-top:2px;">CLASS: ${cat.toUpperCase()}</div>
+  `;
+
+  // ── True Metadata ──
+  document.getElementById('true-specs-box').style.display = 'block';
+  document.getElementById('e-man').innerText  = data.maneuverability >= 2 ? "HIGH (2)" : (data.maneuverability === 1 ? "MED (1)" : "LOW (0)"); 
+  document.getElementById('e-alt').innerText  = "TRACKING";
+  document.getElementById('e-gen').innerText  = 'GEN ' + data.enemy_generation.toFixed(1);
+  document.getElementById('e-rng').innerText  = data.missile_range  > 0 ? (data.missile_range  / 1000).toFixed(0) + ' KM' : 'NONE';
+  document.getElementById('e-mspd').innerText = data.missile_speed  > 0 ? data.missile_speed  + ' M/S' : 'N/A';
+  document.getElementById('e-aa').innerText   = isAA ? 'YES' : 'NO';
+
+  // ── Generation Advantage ──
+  const genDiff = currentOwn.gen - data.enemy_generation;
+  const advEl   = document.getElementById('gen-adv-val');
+  const advBox  = document.getElementById('gen-adv-box');
+  if (genDiff > 0) {
+    advEl.innerText = '+' + genDiff.toFixed(1) + ' FRIENDLY ADV';
+    advEl.style.color = '#2dd4a0';
+    advBox.style.borderColor = 'rgba(45,212,160,.28)';
+  } else if (genDiff < 0) {
+    advEl.innerText = genDiff.toFixed(1) + ' ENEMY ADV';
+    advEl.style.color = '#e84444';
+    advBox.style.borderColor = 'rgba(232,68,68,.28)';
+  } else {
+    advEl.innerText = 'PARITY';
+    advEl.style.color = '#f0a030';
+    advBox.style.borderColor = 'rgba(240,160,48,.28)';
+  }
+
+  // ── Threat Gauge ──
+  const dash = (threatProb / 100) * 326;
+  document.getElementById('threat-arc').style.strokeDasharray = `${dash} 326`;
+  document.getElementById('threat-arc').style.stroke = col;
+  document.getElementById('threat-val').innerText = `${threatProb}%`;
+  document.getElementById('threat-val').setAttribute('fill', col);
+  
+  let labelText = 'SAFE';
+  if (isAA) labelText = threatProb > 60 ? 'CRITICAL' : (threatProb > 30 ? 'ELEVATED' : 'LOW');
+  document.getElementById('threat-label').innerText = labelText;
+  document.getElementById('threat-label').setAttribute('fill', col);
+
+  // ── Kinematics ──
+  document.getElementById('eta-val').innerText   = isAA ? data.eta_seconds.toFixed(1) + 's' : 'N/A';
+  document.getElementById('eta-val').style.color = col;
+  
+  const approxClose = data.missile_speed > 0 ? Math.floor(data.missile_speed + ownSpeedMS) : 0;
+  document.getElementById('close-val').innerText = isAA ? approxClose.toLocaleString() + ' M/S' : '0 M/S';
+  
+  document.getElementById('dist-val').innerText  = (distMeters / 1000).toFixed(1) + ' KM';
+  document.getElementById('aspect-val').innerText = azimuth + '\u00b0 ' + aspectDescriptor(azimuth);
+  document.getElementById('phase-val').innerText  = isAA ? 'TRACKING' : 'N/A';
+
+  // ── Banner ──
+  const banner = document.getElementById('tac-banner');
+  banner.style.borderColor = col;
+  banner.style.background  = col === '#00d4b0' ? 'rgba(0,212,176,.05)'
+                           : col === '#f0a030' ? 'rgba(240,160,48,.05)'
+                           : 'rgba(232,68,68,.05)';
+  document.getElementById('tac-text').innerText   = data.recommendation;
+  document.getElementById('tac-text').style.color = col;
+  
+  document.getElementById('conf-text').innerText  = threatProb > 70 ? 'HIGH CONF'
+                                                  : threatProb > 35 ? 'MED CONF'
+                                                  : 'SYS NORMAL';
+
+  // ── Critical Pulse ──
+  const hud = document.getElementById('main-hud');
+  threatProb > 60 ? hud.classList.add('threat-critical') : hud.classList.remove('threat-critical');
+
+  document.getElementById('clear-btn').style.display = 'block';
+}
+
+// ──────────────────────────────────────────────
+// RESET HUD TO NEUTRAL
+// ──────────────────────────────────────────────
+function clearTarget() {
+  uploadedFile = null;
+  // SVG
+  const svgNode = document.getElementById('target-svg');
+  svgNode.style.color = '#00d4b0';
+  svgNode.innerHTML = premiumSVGs.none;
+  document.getElementById('target-info').innerHTML =
+    `<div style="font-size:13px;font-weight:700;color:#00d4b0;margin-top:12px;letter-spacing:.1em;">SCANNING AIRSPACE...</div>`;
+  document.getElementById('true-specs-box').style.display = 'none';
+
+  // Threat gauge
+  document.getElementById('threat-arc').style.strokeDasharray = '0 326';
+  document.getElementById('threat-arc').style.stroke = '#00d4b0';
+  document.getElementById('threat-val').innerText = '0%';
+  document.getElementById('threat-val').setAttribute('fill', '#00d4b0');
+  document.getElementById('threat-label').innerText = 'SAFE';
+  document.getElementById('threat-label').setAttribute('fill', 'rgba(0,212,176,.5)');
+
+  // Kinematics
+  document.getElementById('eta-val').innerText   = 'N/A';
+  document.getElementById('eta-val').style.color = '#00d4b0';
+  document.getElementById('close-val').innerText = '0 M/S';
+  document.getElementById('dist-val').innerText  = '---';
+  document.getElementById('aspect-val').innerText = '---';
+  document.getElementById('phase-val').innerText  = '---';
+
+  // Banner
+  const banner = document.getElementById('tac-banner');
+  banner.style.borderColor = 'rgba(0,212,176,.2)';
+  banner.style.background  = 'rgba(0,212,176,.05)';
+  document.getElementById('tac-text').innerText   = 'CONTINUE SCANNING SECTOR';
+  document.getElementById('tac-text').style.color = '#00d4b0';
+  document.getElementById('conf-text').innerText  = 'SYS NORMAL';
+
+  // Header & Feed Reset
+  const hdr = document.getElementById('header-alert');
+  hdr.innerText    = 'SCANNING AIRSPACE';
+  hdr.style.color  = 'rgba(0,212,176,.3)';
+  hdr.classList.remove('hb');
+  
+  document.getElementById('main-hud').classList.remove('threat-critical');
+  document.getElementById('clear-btn').style.display   = 'none';
+  document.getElementById('sensor-status').innerText   = 'STANDBY';
+  document.getElementById('sensor-status').style.color = 'rgba(0,212,176,.3)';
+  document.getElementById('sensor-img').style.display  = 'none';
+  document.getElementById('sensor-text').style.display = 'block';
+  document.getElementById('file-upload').value = '';
+}
+
+// ── INIT ──
+updateOwnPlatform();
+</script>
+</body>
+</html>
