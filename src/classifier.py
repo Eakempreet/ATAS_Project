@@ -24,7 +24,7 @@ os.environ["TF_USE_LEGACY_KERAS"] = "1"
 
 import tensorflow as tf
 import tensorflow_hub as hub
-from schemas import MODEL_PATHS
+from src.schemas import MODEL_PATHS
 import numpy as np
 
 # Prevent TF from allocating all VRAM at startup — allocate as needed instead.

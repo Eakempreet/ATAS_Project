@@ -8,7 +8,7 @@ This module knows nothing about models, physics, or metadata.
 Its only job is: predictions in, decision out.
 """
 
-from schemas import DECISION_THRESHOLDS
+from src.schemas import DECISION_THRESHOLDS
 
 def get_recommendation(eta_seconds, hit_probability, no_aa_capability, enemy_generation, friendly_generation):
     """

@@ -11,7 +11,7 @@ Its only job is: feature array in, predictions out.
 """
 
 
-from schemas import FEATURE_COLUMNS, MODEL_PATHS
+from src.schemas import FEATURE_COLUMNS, MODEL_PATHS
 from joblib import load
 import numpy as np
 

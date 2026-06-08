@@ -6,7 +6,7 @@ metadata.py has one job: take an aircraft name, look it up in the CSV, return it
 """
 
 import pandas as pd
-from schemas import BASE_DIR
+from src.schemas import BASE_DIR
 
 CSV_PATH = BASE_DIR / "data" / "aircraft_metadata.csv"
 
