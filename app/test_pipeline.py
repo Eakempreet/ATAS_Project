@@ -63,3 +63,32 @@ response = requests.post(
 
 print(response.status_code)   # should be 200 if everything worked
 print(response.json())        # the actual pipeline output
+
+
+
+
+"""
+VERIFIED OUTPUT - June 8, 2026
+End-to-end pipeline confirmed working. Status 200.
+
+Test image : assets/Su57.jpg
+Server     : uvicorn app.main:app (no --reload)
+Run with   : python -m app.test_pipeline
+
+Response:
+{
+    "aircraft_name"   : "Su57",
+    "missile_speed"   : 2058,
+    "missile_range"   : 400000,
+    "enemy_generation": 5.0,
+    "maneuverability" : 2,
+    "no_aa_capability": 0,
+    "eta_seconds"     : 3.77,
+    "hit_probability" : 0.969,
+    "recommendation"  : "BREAK HARD + DEPLOY CM + DISENGAGE IMMEDIATELY"
+}
+
+All 6 src/ modules executed without error.
+Aircraft correctly identified from image.
+Recommendation matches expected threat profile for Gen-5 enemy at 10km.
+"""
