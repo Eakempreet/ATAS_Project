@@ -91,7 +91,7 @@ async def analyze(
         missile_range=metadata_dict['missile_range'],
         enemy_generation=metadata_dict['enemy_generation'],
         # From metadata lookup (friendly aircraft)
-        your_maneuverability=metadata_dict['maneuverability']
+        your_maneuverability=friendly_metadata['maneuverability']
     )
     
     # 4. Make predictions using models
