@@ -13,9 +13,9 @@ logs/
 models/
 release_models/
 # Use the following to include specific release model files in git
-# !release_models/aircraft_classifier
-# !release_models/eta
-# !release_models/hit
+!release_models/aircraft_classifier
+!release_models/eta
+!release_models/hit
 
 # Prediction outputs and training history
 predictions/
