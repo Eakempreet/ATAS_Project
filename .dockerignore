@@ -1,0 +1,33 @@
+.git/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+notebooks/
+
+# Project notes and personal vaults
+ATAS_Notes/
+
+# Local python environment
+env/
+
+# Large data folder (keep metadata CSV tracked)
+data/
+!data/aircraft_metadata.csv
+
+# Logs, artifacts and model binaries
+logs/
+models/
+release_models/
+!release_models/aircraft_classifier/
+!release_models/aircraft_classifier/atas_final_fine_tuned_aircraft_classifier_model.keras
+!release_models/eta/
+!release_models/eta/atas_final_eta_regressor_model.joblib
+!release_models/hit/
+!release_models/hit/atas_final_hit_classifier_model.joblib
+
+# Prediction outputs and training history
+predictions/
+model_history/
+
+# VS Code workspace config
+.vscode/
