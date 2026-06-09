@@ -13,8 +13,11 @@ logs/
 models/
 release_models/
 # Use the following to include specific release model files in git
+!release_models/aircraft_classifier/
 !release_models/aircraft_classifier/atas_final_fine_tuned_aircraft_classifier_model.keras
+!release_models/eta/
 !release_models/eta/atas_final_eta_regressor_model.joblib
+!release_models/hit/
 !release_models/hit/atas_final_hit_classifier_model.joblib
 
 # Prediction outputs and training history
