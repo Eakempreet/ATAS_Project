@@ -43,36 +43,11 @@ Random chance baseline accuracy is approximately 0.99%, making the classificatio
 
 ## Model evolution
 
-The classifier pipeline began with smaller baseline experiments before moving toward larger transfer learning architectures.
+I started with smaller CNN baselines and early transfer learning experiments to validate the pipeline before moving to larger architectures.
 
-The first notebook focused on validating the full image pipeline:
+EfficientNetV2 L ended up giving the best balance of feature quality and prediction stability on difficult aircraft classes, especially during TTA inference where smaller models were less consistent.
 
-* Dataset loading
-* Label mapping
-* Augmentation behavior
-* GPU training stability
-* Baseline CNN experimentation
-* Early transfer learning tests
-
-Once the pipeline stabilized, the project transitioned to EfficientNetV2 L for final production training.
-
-EfficientNetV2 L was selected because classification accuracy was prioritized over lightweight inference speed. Smaller architectures trained faster, but struggled to consistently separate visually similar aircraft classes across difficult viewing conditions.
-
-Compared to earlier baselines, EfficientNetV2 L provided:
-
-* Stronger feature extraction on fine aircraft details
-* Better confidence separation between similar aircraft
-* Higher Top 1 accuracy after fine tuning
-* More stable predictions during TTA inference
-
-The final production pipeline combines:
-
-* ImageNet pretrained EfficientNetV2 L
-* Fine tuning
-* Aggressive augmentation
-* TTA inference at N = 15
-
-to maximize classification reliability on ambiguous aircraft silhouettes.
+The final pipeline combines ImageNet pretrained EfficientNetV2 L, fine tuning, aggressive augmentation, and fixed N = 15 TTA inference to improve classification reliability on ambiguous aircraft silhouettes.
 
 ---
 
@@ -89,7 +64,7 @@ to maximize classification reliability on ambiguous aircraft silhouettes.
 
 The notebook sets:
 
-```python id="39g9hy"
+```python
 TF_USE_LEGACY_KERAS = "1"
 ```
 
@@ -160,7 +135,7 @@ Top 5 accuracy above 92% means the correct aircraft class is almost always prese
 
 ## Saved model
 
-```text id="5kr7xj"
+```text
 release_models/
 └── aircraft_classifier/
     └── atas_final_fine_tuned_aircraft_classifier_model.keras
@@ -198,25 +173,25 @@ Full dataset training was performed on cloud GPUs due to local VRAM limitations 
 
 ### Open locally with Jupyter
 
-```bash id="4lg5rt"
+```bash
 jupyter notebook
 ```
 
 Open either notebook:
 
-```text id="bn3i1m"
+```text
 01_aircraft_classifier_v1.ipynb
 ```
 
 or
 
-```text id="95br5h"
+```text
 02_aircraft_classifier_v2.ipynb
 ```
 
 ### Required packages
 
-```bash id="9m2yvw"
+```bash
 pip install tensorflow pandas numpy matplotlib scikit-learn
 ```
 
