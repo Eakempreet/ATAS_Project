@@ -144,4 +144,5 @@ The serialized model remains within GitHub storage limits and is versioned direc
 
 * The raw classifier probability is passed directly to the HUD threat gauge rather than being converted into a handcrafted score.
 
-* XGBoost was reused from Stage 4 because it had already demonstrated strong performance on the same synthetic feature space.
+* XGBoost was reused because it had already demonstrated strong performance on the same synthetic feature space and engagement data distribution.
+
