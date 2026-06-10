@@ -44,6 +44,17 @@ It is not a real military system and does not attempt to simulate classified avi
 
 ---
 
+## Inspiration
+
+One of the biggest inspirations behind ATAS was the F 35 Distributed Aperture System (DAS).
+
+DAS is a real world sensor fusion system that combines infrared cameras around the aircraft to give the pilot full spherical threat awareness and automatic warning cues directly inside the cockpit.
+
+ATAS is obviously not attempting to recreate that system. The scale and complexity are completely different.
+
+What fascinated me was the idea of multiple independent subsystems working together to help a pilot interpret a threat quickly under pressure. That became the core design idea behind this project.
+
+---
 
 ## Screenshots
 
