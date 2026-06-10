@@ -87,20 +87,21 @@ The baseline classifier already achieved extremely strong metrics, so additional
 
 ## Class imbalance handling
 
-The synthetic dataset preserves realistic engagement outcome distributions, which introduces class imbalance naturally.
+The dataset distribution was approximately:
 
-Class imbalance was handled using:
+* 59% hit
+* 41% miss
 
-* `scale_pos_weight` in XGBoost
-* Recall focused evaluation
+This is a mild imbalance rather than a severe one, so no aggressive balancing strategy was necessary.
 
-Recall was treated as the primary metric because false negatives are the dangerous failure mode in a threat assessment system.
+Class balance was preserved using stratified train, validation, and test splits:
 
-A false positive means the pilot reacts unnecessarily.
+```python id="o0wqjc"
+stratify=aircraft_df['hit'],
+random_state=42
+```
 
-A false negative means the pilot does not react when they should have.
-
-Those two mistakes are not equally costly.
+No additional imbalance correction methods were used.
 
 ---
 
