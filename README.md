@@ -10,37 +10,6 @@ ATAS is an end to end ML threat assessment pipeline that identifies aircraft fro
 
 ---
 
-## Screenshots
-
-<table>
-  <tr>
-    <td align="center">
-      <img src="assets/demonstration/ss_idle.png" width="400"/>
-      <br/>
-      Idle state
-    </td>
-    <td align="center">
-      <img src="assets/demonstration/ss_target_acquired.png" width="400"/>
-      <br/>
-      Target acquired
-    </td>
-  </tr>
-  <tr>
-    <td align="center">
-      <img src="assets/demonstration/ss_safe.png" width="400"/>
-      <br/>
-      Safe state (C 130, green)
-    </td>
-    <td align="center">
-      <img src="assets/demonstration/ss_critical.png" width="400"/>
-      <br/>
-      Critical threat (Su 57 vs F 22, red)
-    </td>
-  </tr>
-</table>
-
----
-
 ## Pipeline overview
 
 ```text id="u3x4bq"
@@ -74,6 +43,39 @@ The project explores what happens when computer vision, physics simulation, stru
 It is not a real military system and does not attempt to simulate classified avionics behavior. The goal was building a complete end to end ML system where an aircraft image becomes a tactical recommendation through multiple independent subsystems working together.
 
 ---
+
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="assets/demonstration/ss_idle.png" width="400"/>
+      <br/>
+      Idle state
+    </td>
+    <td align="center">
+      <img src="assets/demonstration/ss_target_acquired.png" width="400"/>
+      <br/>
+      Target acquired
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="assets/demonstration/ss_safe.png" width="400"/>
+      <br/>
+      Safe state (C 130, green)
+    </td>
+    <td align="center">
+      <img src="assets/demonstration/ss_critical.png" width="400"/>
+      <br/>
+      Critical threat (Su 57 vs F 22, red)
+    </td>
+  </tr>
+</table>
+
+---
+
 
 ## Tech stack
 
