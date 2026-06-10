@@ -13,23 +13,23 @@ ATAS is an end to end ML threat assessment pipeline that identifies aircraft fro
 ## Pipeline overview
 
 ```text id="u3x4bq"
-Aircraft Image
-       ↓
-[1] EfficientNetV2 L Aircraft Classifier
-       ↓
-[2] Aircraft Metadata Lookup
-       ↓
-[3] Physics Based Scenario Generation
-       ↓
- ┌───────────────────────┬───────────────────────┐
- ↓                       ↓
-[4] ETA Regressor     [5] Hit Classifier
+       Aircraft Image
+              ↓
+       [1] EfficientNetV2 L Aircraft Classifier
+              ↓
+       [2] Aircraft Metadata Lookup
+              ↓
+       [3] Physics Based Scenario Generation
+              ↓
+ ┌───────────────────────────────────────┐
+ ↓                                       ↓
+[4] ETA Regressor                      [5] Hit Classifier
  ↓                       ↓
  └────────── Threat Assessment ──────────┘
                     ↓
         [6] Tactical Decision Layer
                     ↓
-      [7] FastAPI Backend + HUD
+        [7] FastAPI Backend + HUD
 ```
 
 ---
