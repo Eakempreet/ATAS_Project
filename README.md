@@ -12,7 +12,7 @@ ATAS is an end to end ML threat assessment pipeline that identifies aircraft fro
 
 ## Pipeline overview
 
-```text id="u3x4bq"
+```text 
        Aircraft Image
               ↓
        [1] EfficientNetV2 L Aircraft Classifier
@@ -38,7 +38,7 @@ ATAS is an end to end ML threat assessment pipeline that identifies aircraft fro
 
 ATAS was inspired by fighter jet Radar Warning Receiver systems where pilots need fast threat interpretation under incomplete information.
 
-The project explores what happens when computer vision, physics simulation, structured ML, and tactical logic are connected into one inference pipeline.
+The project combines computer vision, physics simulation, structured ML, and tactical logic into a single end to end inference pipeline.
 
 It is not a real military system and does not attempt to simulate classified avionics behavior. The goal was building a complete end to end ML system where an aircraft image becomes a tactical recommendation through multiple independent subsystems working together.
 
@@ -127,6 +127,7 @@ The physics generator creates structured ground truth engagement data. The ML mo
 
 ---
 
+
 ### Why two models instead of one
 
 The ETA regressor predicts when the pilot needs to react.
@@ -150,7 +151,7 @@ It also provided:
 * Stable inference behavior
 * SHAP explainability support
 
-The final Optuna search ran for approximately 944 trials.
+The final Optuna search stopped around 944 trials once validation MAE improvements became marginal.
 
 ---
 
@@ -179,9 +180,27 @@ This became a real deployment constraint during the project rather than a theore
 
 ---
 
+## Possible V2 directions
+
+ATAS was intentionally built in a modular way so different parts of the system can improve independently.
+
+Some possible upgrade paths:
+
+* Real radar or telemetry inputs instead of synthetic scenarios
+* Reinforcement learning based tactical decision system
+* Video based tracking instead of single image inference
+* Multi target threat prioritization
+* Live streaming inference
+* Multi sensor fusion instead of image only input
+* More interactive HUD controls
+
+> The current system is intentionally focused on proving the full end-to-end pipeline first before increasing realism and complexity.
+
+---
+
 ## Repository structure
 
-```text id="k37t0g"
+```text 
 ATAS_Project/
 ├── app/
 │   ├── main.py
@@ -230,25 +249,25 @@ ATAS_Project/
 
 ### Docker
 
-```bash id="cz6f7x"
+```bash 
 git clone https://github.com/Eakempreet/ATAS_Project.git
 ```
 
-```bash id="gf9f0j"
+```bash
 cd ATAS_Project
 ```
 
-```bash id="zj7x2m"
+```bash 
 docker build -t atas .
 ```
 
-```bash id="x6sz7v"
+```bash 
 docker run -p 7860:7860 atas
 ```
 
 Open:
 
-```text id="qu50nf"
+```text 
 http://localhost:7860
 ```
 
@@ -256,17 +275,17 @@ http://localhost:7860
 
 ### Manual uvicorn
 
-```bash id="oz9o8w"
+```bash 
 pip install -r requirements.txt
 ```
 
-```bash id="xxjv9f"
+```bash 
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 Open:
 
-```text id="s0n40o"
+```text 
 http://localhost:8000
 ```
 
