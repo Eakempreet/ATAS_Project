@@ -31,6 +31,7 @@ main.py
 from fastapi import FastAPI
 from fastapi import UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 import tempfile
 import os
 from src.classifier import predict_aircraft
@@ -52,11 +53,20 @@ app = FastAPI()
 # allow_headers=["*"]  → accept any headers the browser sends with the request
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://eakempreet-atas.hf.space"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Now that the HUD is served from the same Space, no other origin needs access
+# This prevents random websites from hitting your /analyze endpoint
 
+# When a browser visits the Space URL, it sends GET /
+# This route catches that request and returns the HUD HTML file
+# FileResponse reads the file from disk and sends it with the correct content type
+# so the browser knows to render it as a webpage, not download it
+@app.get("/")
+async def serve_hud():
+    return FileResponse("frontend/atas_hud_v11.html")
 
 # Function to take the inputs
 # image -> as temp file
