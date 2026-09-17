@@ -8,12 +8,11 @@ ATAS is an end to end ML threat assessment pipeline that identifies aircraft fro
 
 [Live Demo on Hugging Face Spaces](https://huggingface.co/spaces/Eakempreet/ATAS)
 
+> This project shows the full loop: train a computer vision classifier, feed its output into structured ML models, wrap decision logic around the predictions, and serve the whole thing as a live API with Docker. If you need a model turned into something your product can actually call, this is what that looks like end to end.
+
 ---
 
 ## Pipeline overview
-
-**This project shows the full loop: 
-Train a computer vision classifier, feed its output into structured ML models, wrap decision logic around the predictions, and serve the whole thing as a live API with Docker. If you need a model turned into something your product can actually call, this is what that looks like end to end.**
 
 ```text 
        Aircraft Image
