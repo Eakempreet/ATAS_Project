@@ -291,11 +291,62 @@ http://localhost:7860
 
 ---
 
-### Manual uvicorn
+### Manual setup and uvicorn
+
+Create a Conda environment with Python 3.11. TensorFlow 2.16.1 is not
+compatible with every newer Python release, so use the tested Python version:
 
 ```bash 
-pip install -r requirements.txt
+conda create -n atas python=3.11 pip -y
+conda activate atas
+python -m pip install -r requirements.txt
 ```
+
+If you are using TensorFlow Hub 0.16.1, keep `setuptools<81` in
+`requirements.txt`. TensorFlow Hub still imports `pkg_resources`, which was
+removed from newer setuptools releases.
+
+#### Optional NVIDIA GPU support on WSL2/Linux
+
+The NVIDIA driver must be installed on the Windows host, and `nvidia-smi`
+must work inside WSL2 before configuring TensorFlow:
+
+```bash
+nvidia-smi
+```
+
+Install TensorFlow's CUDA dependencies from the `atas` environment:
+
+```bash
+conda activate atas
+python -m pip install "tensorflow[and-cuda]==2.16.1"
+```
+
+TensorFlow 2.16.1 may not automatically find the CUDA libraries installed by
+pip. Add them to the environment whenever `atas` is activated:
+
+```bash
+mkdir -p "$CONDA_PREFIX/etc/conda/activate.d"
+
+cat > "$CONDA_PREFIX/etc/conda/activate.d/tensorflow-cuda.sh" <<'EOF'
+export LD_LIBRARY_PATH="$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/cuda_runtime/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/cublas/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/cudnn/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/cufft/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/curand/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/cusolver/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/cusparse/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nccl/lib:$CONDA_PREFIX/lib/python3.11/site-packages/nvidia/nvjitlink/lib:${LD_LIBRARY_PATH:-}"
+EOF
+
+conda deactivate
+conda activate atas
+```
+
+Verify that TensorFlow can see the GPU:
+
+```bash
+python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+```
+
+The output should contain `PhysicalDevice(name='/physical_device:GPU:0',
+device_type='GPU')`. If no GPU is detected, check that `nvidia-smi` works and
+that the `atas` environment is active.
+
+Start the API:
 
 ```bash 
 uvicorn app.main:app --host 0.0.0.0 --port 8000
